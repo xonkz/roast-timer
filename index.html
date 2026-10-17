@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roast Dinner Timer</title>
+<meta name="description" content="Plan a roast dinner backwards from serve time, with oven temps, methods and step alarms.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='17' r='12' fill='%231F3A6B'/%3E%3Cpath d='M16 9v8l5 3' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&family=Young+Serif&display=swap">
+<style>
+/* Layout: one narrow column, phone first. Serve time as the hero, an enamel-rimmed "next step" card, then the minute-by-minute run sheet and methods. */
+:root{
+  --bg:#F1F3EE; --surface:#FFFFFF; --ink:#1D2420; --muted:#5E6A63; --line:#D8DDD4;
+  --rim:#1F3A6B; --rim-soft:#E3E9F4; --hot:#B9471A; --hot-soft:#F8E6DC; --sage:#3F6149; --sage-soft:#E1EAE2;
+  --f-display:"Young Serif", Georgia, "Times New Roman", serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111512; --surface:#1A1F1B; --ink:#E7ECE5; --muted:#9BA69E; --line:#2D3430;
+  --rim:#93B1E8; --rim-soft:#1D2940; --hot:#F08B5E; --hot-soft:#3A231A; --sage:#94C09F; --sage-soft:#1E2C22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111512; --surface:#1A1F1B; --ink:#E7ECE5; --muted:#9BA69E; --line:#2D3430;
+  --rim:#93B1E8; --rim-soft:#1D2940; --hot:#F08B5E; --hot-soft:#3A231A; --sage:#94C09F; --sage-soft:#1E2C22; color-scheme:dark}
+
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg)}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0}
+h2{font-size:1.3rem}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rim);outline-offset:2px}
+
+/* Hero */
+.hero{display:flex;flex-direction:column;gap:12px}
+.serve-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font-family:var(--f-display);font-size:clamp(1.7rem,7vw,2.4rem);line-height:1.15}
+.serve-line input[type=time]{font-family:var(--f-mono);font-size:clamp(1.6rem,7vw,2.3rem);font-weight:500;background:var(--surface);border:2px solid var(--rim);border-radius:10px;padding:2px 8px;color:var(--rim);min-width:0;max-width:100%}
+.hero-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
+.summary{color:var(--muted);font-size:.95rem;margin:0}
+.summary strong{color:var(--ink);font-weight:600}
+
+/* Next card (the enamel tin) */
+.next{background:var(--surface);border:3px solid var(--rim);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.next.alarm{border-color:var(--hot);background:var(--hot-soft);animation:pulse 1s ease-in-out 4}
+@keyframes pulse{50%{transform:scale(1.015)}}
+@media (prefers-reduced-motion:reduce){.next.alarm{animation:none}}
+.next-title{font-family:var(--f-display);font-size:1.4rem;line-height:1.25;margin:0}
+.next-detail{color:var(--muted);margin:0;font-size:.95rem}
+.count{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:clamp(2.2rem,11vw,3.2rem);font-weight:500;line-height:1;color:var(--rim)}
+.next.alarm .count{color:var(--hot)}
+.next-meta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--rim);color:var(--surface)}
+.btn.off{background:var(--rim-soft);color:var(--rim)}
+.hint{font-size:.82rem;color:var(--muted);margin:0}
+
+/* Choosers */
+section{display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.95rem}
+.chip[aria-pressed=true]{background:var(--rim);border-color:var(--rim);color:var(--surface);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.stepper button{border:0;background:none;width:40px;height:40px;font-size:1.2rem;cursor:pointer}
+.stepper input{width:64px;border:0;background:none;text-align:center;font-family:var(--f-mono);font-size:1rem;padding:0}
+.lbl{font-size:.9rem;color:var(--muted)}
+select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px}
+
+/* Run sheet */
+.sheet{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ev{display:grid;grid-template-columns:52px 1fr auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line);align-items:start}
+.ev:last-child{border-bottom:1px solid var(--line)}
+.ev time{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;padding-top:1px}
+.ev-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.ev-title{font-weight:600;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ev-detail{color:var(--muted);font-size:.9rem}
+.tag{font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;border-radius:5px;padding:1px 6px}
+.tag.oven,.tag.in,.tag.out{background:var(--rim-soft);color:var(--rim)}
+.tag.hob{background:var(--sage-soft);color:var(--sage)}
+.tag.prep{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.tag.serve{background:var(--hot-soft);color:var(--hot)}
+.tick{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center;color:transparent;font-weight:700}
+.ev.done .tick{background:var(--sage);border-color:var(--sage);color:var(--surface)}
+.ev.done .ev-title,.ev.done time{text-decoration:line-through;color:var(--muted)}
+.ev.past:not(.done) time{color:var(--hot)}
+.ev.now{background:var(--rim-soft);margin-inline:-10px;padding-inline:10px;border-radius:10px;border-top-color:transparent}
+.ev.now + .ev{border-top-color:transparent}
+
+/* Methods */
+.methods{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.m{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.m h3{margin:0;font-size:1rem}
+.m .facts{display:flex;flex-wrap:wrap;gap:4px 12px;font-family:var(--f-mono);font-size:.82rem;color:var(--rim)}
+.m p{margin:0;font-size:.9rem;color:var(--muted)}
+.m .check{color:var(--ink)}
+.m .warn{color:var(--hot)}
+.foot{font-size:.82rem;color:var(--muted);margin:0}
+
+/* Account + saved data */
+.acctbar{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:.85rem;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.dot.ok{background:var(--sage)} .dot.busy{background:var(--rim)} .dot.err{background:var(--hot)}
+.link{border:0;background:none;padding:0;color:var(--rim);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.field{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-width:0;flex:1 1 200px}
+textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-body)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.box h3{margin:0;font-size:1rem}
+.msg{margin:0;font-size:.88rem;color:var(--muted)}
+.msg.err{color:var(--hot)}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.item{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0;padding-top:0}
+.item-main{min-width:0;flex:1 1 200px;display:flex;flex-direction:column;gap:2px}
+.item-name{font-weight:600;overflow-wrap:anywhere}
+.item-sub{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.item-notes{font-size:.9rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.stars{color:var(--hot);letter-spacing:.1em}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.sbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:.85rem;cursor:pointer}
+.sbtn.primary{background:var(--rim);border-color:var(--rim);color:var(--surface);font-weight:600}
+.sbtn.armed{background:var(--hot);border-color:var(--hot);color:var(--surface)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span> <a class="link" href="#account" id="acct-link">Sign in to keep it safe</a></div>
+    <p class="eyebrow">Roast Dinner Timer</p>
+    <label class="serve-line" for="serve">On the table at <input type="time" id="serve" step="300"></label>
+    <div class="hero-row">
+      <div class="seg" role="group" aria-label="Day">
+        <button type="button" data-day="today" id="day-today">Today</button>
+        <button type="button" data-day="tomorrow" id="day-tomorrow">Tomorrow</button>
+      </div>
+      <div class="seg" role="group" aria-label="Oven temperature units">
+        <button type="button" data-unit="fan" id="u-fan">Fan</button>
+        <button type="button" data-unit="conv" id="u-conv">Conventional</button>
+        <button type="button" data-unit="gas" id="u-gas">Gas</button>
+      </div>
+    </div>
+    <p class="summary" id="summary"></p>
+  </header>
+
+  <div class="next" id="next" aria-live="polite">
+    <p class="eyebrow" id="next-label">Next step</p>
+    <div class="count" id="count">--:--</div>
+    <p class="next-title" id="next-title"></p>
+    <p class="next-detail" id="next-detail"></p>
+    <div class="next-meta">
+      <button class="btn" id="run" type="button">Start timers</button>
+      <p class="hint" id="run-hint">Keep this page open. An alarm sounds at every step.</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>The meat</h2>
+    <div class="chips" id="meats"></div>
+    <div class="row" id="meat-opts">
+      <span class="lbl">Weight</span>
+      <div class="stepper">
+        <button type="button" id="kg-down" aria-label="Less weight">−</button>
+        <input id="kg" inputmode="decimal" aria-label="Weight in kilograms">
+        <button type="button" id="kg-up" aria-label="More weight">+</button>
+      </div>
+      <span class="lbl">kg</span>
+      <select id="doneness" aria-label="How you like it"></select>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sides</h2>
+    <div class="chips" id="sides"></div>
+  </section>
+
+  <section>
+    <h2>Run sheet</h2>
+    <ol class="sheet" id="sheet"></ol>
+  </section>
+
+  <section id="account">
+    <h2>Your roasts</h2>
+
+    <div class="box" id="signed-out">
+      <form id="login" class="row" novalidate>
+        <label for="email" class="lbl" style="flex-basis:100%">Sign in with your email to save roasts and keep a cook log on any device. No password needed.</label>
+        <input class="field" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+        <button class="btn" type="submit" id="login-btn">Email me a link</button>
+      </form>
+      <p class="msg" id="login-msg" aria-live="polite"></p>
+    </div>
+
+    <div id="signed-in" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="box">
+        <h3>Save this roast</h3>
+        <form id="save-form" class="row" novalidate>
+          <label for="save-name" class="lbl" hidden>Name</label>
+          <input class="field" id="save-name" maxlength="80" placeholder="Sunday chicken for 4">
+          <button class="btn" type="submit">Save</button>
+        </form>
+        <p class="msg" id="save-msg" aria-live="polite"></p>
+        <ul class="list" id="saved-list"></ul>
+      </div>
+
+      <div class="box">
+        <h3>Log this cook</h3>
+        <div class="row">
+          <label for="rating" class="lbl">How did it go?</label>
+          <select id="rating">
+            <option value="">No rating</option>
+            <option value="5">★★★★★ Perfect</option>
+            <option value="4">★★★★ Great</option>
+            <option value="3">★★★ Fine</option>
+            <option value="2">★★ Needs work</option>
+            <option value="1">★ Rescue job</option>
+          </select>
+        </div>
+        <label for="notes" class="lbl">Notes for next time</label>
+        <textarea class="field" id="notes" maxlength="4000" placeholder="Potatoes needed 10 min longer. Chicken was perfect at 1hr 25."></textarea>
+        <div class="row"><button class="btn" type="button" id="log-btn">Log this cook</button></div>
+        <p class="msg" id="log-msg" aria-live="polite"></p>
+        <ul class="list" id="cook-list"></ul>
+      </div>
+
+      <p class="acctbar">Signed in as <strong id="who"></strong> <button type="button" class="link" id="signout">Sign out</button></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Methods</h2>
+    <div class="methods" id="methods"></div>
+    <p class="foot">Times are a guide for a standard oven. Ovens vary, so check the meat with a thermometer and trust your eyes for the sides.</p>
+  </section>
+</div>
+
+<script>
+const MEATS = {
+  chicken:{label:'Chicken',noun:'chicken',kg:1.6,temp:180,perKg:{std:40},extra:20,rest:25,baste:true,
+    method:'Rub with soft butter, salt and pepper. Put half a lemon and a few garlic cloves in the cavity. Roast breast-up and baste halfway.',
+    check:'75°C in the thickest part of the thigh, and the juices run clear.'},
+  beef:{label:'Beef',noun:'beef',kg:1.5,sear:{temp:220,mins:20},temp:160,perKg:{rare:20,medium:30,well:40},rest:30,
+    dn:{rare:'Rare',medium:'Medium',well:'Well done'},
+    method:'Rub with oil, salt and a little mustard powder. Sit it on halved onions so the juices make the gravy. Blast hot to brown, then turn the oven down.',
+    check:{rare:'50°C in the centre.',medium:'55–60°C in the centre.',well:'70°C in the centre.'}},
+  lamb:{label:'Lamb',noun:'lamb',kg:2,sear:{temp:220,mins:20},temp:170,perKg:{pink:30,medium:40,well:50},rest:25,
+    dn:{pink:'Pink',medium:'Medium',well:'Well done'},
+    method:'Make small cuts all over and push in garlic slivers and rosemary. Season well and sit on halved onions.',
+    check:{pink:'55–60°C in the centre.',medium:'60–65°C in the centre.',well:'70°C in the centre.'}},
+  pork:{label:'Pork',noun:'pork',kg:1.5,sear:{temp:220,mins:30},temp:170,perKg:{std:50},rest:25,
+    method:'Pat the skin very dry, score it and rub with salt. Roast hot for the crackling, then turn the oven down.',
+    check:'70°C in the centre and the juices run clear.'},
+  nut:{label:'Nut roast',noun:'nut roast',fixed:45,temp:180,rest:10,
+    method:'Bake in a lined loaf tin, covered with foil for the first 30 minutes.',
+    check:'Firm to the touch and piping hot in the middle.'},
+  none:{label:'No meat'}
+};
+
+const SIDES = {
+  potatoes:{label:'Roast potatoes',oven:{temp:200,in:60,out:0},time:'10 min parboil + 1 hr roast',
+    method:'Parboil, rough up the edges, then roast in very hot fat, turning once.',check:'Deep golden and crunchy at the edges.',
+    steps:[[75,'Parboil the potatoes','Peel and cut into large chunks. Cover with cold salted water, bring to the boil and simmer 8–10 minutes.','hob'],
+      [70,'Heat the fat','4 tbsp goose fat or oil in a roasting tin, into the oven until very hot.','oven'],
+      [63,'Drain the potatoes','Leave to steam dry for 2 minutes, then shake in the pan to rough up the edges.','prep'],
+      [60,'Potatoes in','Tip carefully into the hot fat, turn to coat and season.','in'],
+      [30,'Turn the potatoes','Turn each one so they crisp evenly.','oven'],
+      [0,'Potatoes out','Drain on kitchen paper and salt.','out']]},
+  parsnips:{label:'Parsnips',oven:{temp:200,in:40,out:0},time:'35–40 min',
+    method:'Quarter lengthways, toss in oil and salt, roast and glaze with honey near the end.',check:'Golden and sticky, soft in the middle.',
+    steps:[[45,'Prep the parsnips','Peel, quarter lengthways and cut out any woody core.','prep'],
+      [40,'Parsnips in','Toss in oil and salt on a tray.','in'],
+      [20,'Turn the parsnips','Turn and drizzle with a little honey or maple syrup.','oven'],
+      [0,'Parsnips out','','out']]},
+  carrots:{label:'Carrots',time:'10–12 min',method:'Boil batons in salted water, then toss with butter.',check:'A knife slides in with a little resistance.',
+    steps:[[18,'Prep the carrots','Peel and cut into batons.','prep'],
+      [12,'Carrots on to boil','Into boiling salted water for 10–12 minutes.','hob'],
+      [0,'Drain the carrots','Toss with a knob of butter and black pepper.','out']]},
+  greens:{label:'Greens',time:'5–6 min',method:'Steam broccoli, cabbage or green beans until bright and just tender.',check:'Bright green with a little bite.',
+    steps:[[6,'Greens on','Steam for 5–6 minutes.','hob'],[0,'Drain the greens','Season and add a little butter.','out']]},
+  peas:{label:'Peas',time:'3 min',method:'Boil frozen peas briefly.',check:'Bright green and tender.',
+    steps:[[4,'Peas on','Into boiling water for 3 minutes.','hob'],[0,'Drain the peas','','out']]},
+  yorkshires:{label:'Yorkshires',oven:{temp:200,in:30,out:0},time:'8 min tin heat + 20–22 min',
+    method:'Equal volumes of eggs, flour and milk, poured into smoking-hot oil.',check:'Tall, golden and crisp. Keep the door shut while they rise.',
+    steps:[[90,'Make the Yorkshire batter','Whisk equal volumes of eggs, plain flour and milk with a pinch of salt. Leave to rest at room temperature.','prep'],
+      [30,'Heat the Yorkshire tin','1 tsp oil or beef dripping in each hole of a muffin tin, into the oven until smoking hot.','oven'],
+      [22,'Yorkshires in','Give the batter a whisk and pour it quickly into the hot oil. Do not open the door.','in'],
+      [0,'Yorkshires out','','out']]},
+  stuffing:{label:'Stuffing',oven:{temp:190,in:30,out:0},time:'30 min',method:'Shape into balls or press into a dish and bake.',check:'Golden on top, hot through.',
+    steps:[[35,'Shape the stuffing','Roll into balls or press into a small greased dish.','prep'],[30,'Stuffing in','','in'],[0,'Stuffing out','','out']]},
+  pigs:{label:'Pigs in blankets',oven:{temp:190,in:30,out:0},time:'25–30 min',method:'Chipolatas wrapped in streaky bacon, roasted seam-side down.',check:'Bacon crisp, sausages cooked through.',
+    steps:[[35,'Wrap the pigs in blankets','Wrap each chipolata in half a rasher of streaky bacon.','prep'],[30,'Pigs in blankets in','Seam-side down on a tray.','in'],[15,'Turn the pigs in blankets','','oven'],[0,'Pigs in blankets out','','out']]},
+  cauli:{label:'Cauliflower cheese',oven:{temp:180,in:35,out:0},time:'15 min prep + 35 min bake',method:'Part-cooked florets under a cheese sauce, baked until bubbling.',check:'Bubbling at the edges and browned on top.',
+    steps:[[50,'Make the cauliflower cheese','Boil florets for 4 minutes and drain. Make a cheese sauce and pour it over them in a baking dish.','hob'],
+      [35,'Cauliflower cheese in','','in'],[0,'Cauliflower cheese out','','out']]},
+  gravy:{label:'Gravy',time:'15–20 min',method:'Made in the roasting tin from the meat juices while the meat rests.',check:'Coats the back of a spoon.',
+    steps:[[20,'Make the gravy','Spoon most of the fat out of the roasting tin. Stir in 1 tbsp flour over the heat, then add 500 ml stock and any resting juices. Simmer 10 minutes, scraping up the sticky bits.','hob'],
+      [0,'Strain the gravy into a warm jug','','out']]}
+};
+
+const DEFAULT = {serve:'13:30',unit:'fan',meat:'chicken',kg:1.6,done:{beef:'medium',lamb:'pink'},sides:['potatoes','carrots','greens','yorkshires','gravy']};
+const store = {
+  get(k,d){try{const v=localStorage.getItem('roast:'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('roast:'+k,JSON.stringify(v))}catch(e){}}
+};
+let state = Object.assign({}, DEFAULT, store.get('state',{}));
+let ticked = new Set(store.get('ticked',[]));
+let day = null, running = false, alerted = new Set(), audio = null, wake = null, plan = [];
+
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const r5 = m => Math.round(m/5)*5;
+function gas(c){const t=[[140,1],[150,2],[160,3],[180,4],[190,5],[200,6],[220,7],[230,8],[240,9]];let b=t[0];for(const x of t){if(Math.abs(x[0]-c)<Math.abs(b[0]-c))b=x}return b[1]}
+function T(fan){return state.unit==='fan'?`${fan}°C fan`:state.unit==='conv'?`${fan+20}°C`:`Gas ${gas(fan+20)}`}
+function dur(m){const h=Math.floor(m/60),mm=m%60;return h?`${h} hr${mm?` ${mm} min`:''}`:`${mm} min`}
+function hm(d){return `${pad(d.getHours())}:${pad(d.getMinutes())}`}
+
+function serveDate(){
+  const [h,m]=state.serve.split(':').map(Number);
+  const d=new Date();d.setHours(h,m,0,0);
+  if(day==='tomorrow')d.setDate(d.getDate()+1);
+  return d;
+}
+
+function buildPlan(){
+  const ev=[], iv=[], methods=[];
+  const m=MEATS[state.meat];
+  let meatInfo=null;
+  if(state.meat!=='none'){
+    let total, check, d='std';
+    if(m.fixed){total=m.fixed;check=m.check}
+    else{d=m.dn?state.done[state.meat]:'std';total=r5((m.sear?m.sear.mins:0)+m.perKg[d]*state.kg+(m.extra||0));check=typeof m.check==='string'?m.check:m.check[d]}
+    const outAt=m.rest, inAt=outAt+total;
+    if(m.sear){iv.push({id:'meat',meat:true,phase:'sear',start:inAt,end:inAt-m.sear.mins,temp:m.sear.temp});iv.push({id:'meat',meat:true,start:inAt-m.sear.mins,end:outAt,temp:m.temp})}
+    else iv.push({id:'meat',meat:true,start:inAt,end:outAt,temp:m.temp});
+    if(!m.fixed) ev.push({t:inAt+45,title:`Take the ${m.noun} out of the fridge`,detail:'So it comes up towards room temperature and cooks evenly.',kind:'prep'});
+    ev.push({t:inAt,title:`${m.label} in`,detail:m.method,kind:'in'});
+    if(m.baste) ev.push({t:r5(outAt+total/2),title:`Baste the ${m.noun}`,detail:'Spoon the juices from the tin over the top.',kind:'oven'});
+    ev.push({t:outAt,title:`${m.label} out to rest`,detail:`Check it's done: ${check} Cover loosely with foil and rest for ${m.rest} minutes.`,kind:'out'});
+    ev.push({t:5,title:m.fixed?'Slice the nut roast':`Carve the ${m.noun}`,detail:'Pour any resting juices into the gravy.',kind:'prep'});
+    meatInfo={label:m.label,temp:m.temp};
+    methods.push({name:m.label+(m.dn?` · ${m.dn[d]}`:''),facts:[m.sear?`${T(m.sear.temp)} for ${m.sear.mins} min, then ${T(m.temp)}`:T(m.temp),`${dur(total)} + ${m.rest} min rest`],method:m.method,check});
+  }
+  const sideMethods={};
+  for(const id of state.sides){
+    const s=SIDES[id];
+    for(const [t,title,detail,kind] of s.steps){
+      if(id==='gravy'&&state.meat==='none'&&t>0){ev.push({t,title,detail:'Fry a sliced onion until soft, stir in 1 tbsp flour, add 500 ml vegetable stock and simmer 10 minutes.',kind,src:id});continue}
+      ev.push({t,title,detail,kind,src:id});
+    }
+    if(s.oven) iv.push({id,start:s.oven.in,end:s.oven.out,temp:s.oven.temp});
+    sideMethods[id]={name:s.label,facts:[s.oven?T(s.oven.temp):'Hob',s.time],method:s.method,check:s.check};
+  }
+  ev.push({t:10,title:'Warm the plates',detail:'Bottom of the oven or a sink of hot water.',kind:'prep'});
+
+  // Oven temperature schedule: the meat sets the temperature while it's in, otherwise the hottest dish wins.
+  const bounds=[...new Set(iv.flatMap(i=>[i.start,i.end]))].sort((a,b)=>b-a);
+  let cur=null, prev=null; const overlap={};
+  for(let i=0;i<bounds.length-1;i++){
+    const a=bounds[i], b=bounds[i+1];
+    const act=iv.filter(x=>x.start>=a&&x.end<=b);
+    if(!act.length) continue;
+    const mi=act.find(x=>x.meat);
+    const target=mi?mi.temp:Math.max(...act.map(x=>x.temp));
+    if(mi) act.forEach(x=>{if(!x.meat&&x.temp>mi.temp)overlap[x.id]=(overlap[x.id]||0)+(a-b)});
+    if(target!==cur){
+      if(cur===null) ev.push({t:a+15,title:`Preheat the oven to ${T(target)}`,detail:'Give it a good 15 minutes to come up to temperature.',kind:'oven',first:true});
+      else{
+        let why=target>cur?'Hotter for what goes in next.':'Lower for what is cooking now.';
+        if(prev&&prev.some(x=>x.phase==='sear')&&mi&&!mi.phase) why='Turn down after the initial blast.';
+        else if(prev&&prev.some(x=>x.meat)&&!mi) why='The meat is out resting, so the oven goes up for the sides.';
+        ev.push({t:a,title:`Oven ${target>cur?'up':'down'} to ${T(target)}`,detail:why,kind:'oven',first:true});
+      }
+      cur=target;
+    }
+    prev=act;
+  }
+  for(const id in overlap){
+    if(overlap[id]<10||!sideMethods[id])continue;
+    sideMethods[id].warn=`Shares the oven with the ${meatInfo.label.toLowerCase()} at ${T(meatInfo.temp)} for about ${overlap[id]} min. It finishes hotter once the meat comes out, but give it 5–10 min longer if it needs it.`;
+  }
+  for(const id of state.sides) methods.push(sideMethods[id]);
+  ev.push({t:0,title:'Serve',detail:'Everything on the table.',kind:'serve'});
+  ev.sort((x,y)=>y.t-x.t||(y.first?1:0)-(x.first?1:0)||(x.kind==='serve')-(y.kind==='serve'));
+  ev.forEach(e=>e.key=`${e.t}|${e.title}`);
+  return {ev,methods,start:ev.length?ev[0].t:0,peak:iv.length?Math.max(...iv.map(i=>i.temp)):null};
+}
+
+function renderControls(){
+  $('#serve').value=state.serve;
+  document.querySelectorAll('[data-day]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.day===day));
+  document.querySelectorAll('[data-unit]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.unit===state.unit));
+  $('#meats').innerHTML=Object.entries(MEATS).map(([k,m])=>`<button type="button" class="chip" data-meat="${k}" aria-pressed="${k===state.meat}">${m.label}</button>`).join('');
+  $('#sides').innerHTML=Object.entries(SIDES).map(([k,s])=>`<button type="button" class="chip" data-side="${k}" aria-pressed="${state.sides.includes(k)}">${s.label}</button>`).join('');
+  const m=MEATS[state.meat];
+  $('#meat-opts').hidden=state.meat==='none'||!!m.fixed;
+  $('#kg').value=state.kg.toFixed(1);
+  const dn=$('#doneness');
+  if(m.dn){dn.hidden=false;dn.innerHTML=Object.entries(m.dn).map(([k,v])=>`<option value="${k}" ${state.done[state.meat]===k?'selected':''}>${v}</option>`).join('')}
+  else dn.hidden=true;
+}
+
+function render(){
+  const p=buildPlan(); plan=p.ev;
+  const sd=serveDate();
+  const startD=new Date(sd-p.start*60000);
+  $('#summary').innerHTML=`Start at <strong class="mono">${hm(startD)}</strong> · ${dur(p.start)} in total${p.peak?` · oven up to <strong>${T(p.peak)}</strong>`:''}`;
+  $('#sheet').innerHTML=plan.map(e=>{
+    const at=new Date(sd-e.t*60000);
+    const tag={in:'In',out:'Out',oven:'Oven',hob:'Hob',prep:'Prep',serve:'Serve'}[e.kind];
+    return `<li class="ev${ticked.has(e.key)?' done':''}" data-key="${e.key}">
+      <time class="mono">${hm(at)}</time>
+      <div class="ev-body"><div class="ev-title"><span class="tag ${e.kind}">${tag}</span>${e.title}</div>${e.detail?`<div class="ev-detail">${e.detail}</div>`:''}</div>
+      <button type="button" class="tick" aria-label="Mark done: ${e.title}" aria-pressed="${ticked.has(e.key)}">✓</button></li>`;
+  }).join('');
+  $('#methods').innerHTML=p.methods.map(x=>`<div class="m"><h3>${x.name}</h3><div class="facts">${x.facts.map(f=>`<span>${f}</span>`).join('')}</div><p>${x.method}</p><p class="check">${x.check}</p>${x.warn?`<p class="warn">${x.warn}</p>`:''}</div>`).join('');
+  tick();
+}
+
+function fmtCount(ms){
+  const s=Math.max(0,Math.round(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
+  return h?`${h}:${pad(m)}:${pad(ss)}`:`${pad(m)}:${pad(ss)}`;
+}
+
+function tick(){
+  const now=Date.now(), sd=serveDate();
+  let next=null;
+  document.querySelectorAll('.ev').forEach(li=>li.classList.remove('now','past'));
+  for(const e of plan){
+    const at=+sd-e.t*60000;
+    const li=document.querySelector(`.ev[data-key="${CSS.escape(e.key)}"]`);
+    if(at<=now){li&&li.classList.add('past');
+      if(running&&!alerted.has(e.key)&&now-at<60000){alerted.add(e.key);alarm(e)}
+    } else if(!next){next={e,at};li&&li.classList.add('now')}
+  }
+  if(next){
+    $('#next-label').textContent=`Next step at ${hm(new Date(next.at))}`;
+    $('#count').textContent=fmtCount(next.at-now);
+    $('#next-title').textContent=next.e.title;
+    $('#next-detail').textContent=next.e.detail||'';
+  } else {
+    $('#next-label').textContent='All done';
+    $('#count').textContent='00:00';
+    $('#next-title').textContent='Dinner is served.';
+    $('#next-detail').textContent='Change the serve time above to plan another roast.';
+  }
+}
+
+function beep(){
+  if(!audio)return;
+  const t0=audio.currentTime;
+  [0,0.35,0.7].forEach(o=>{
+    const osc=audio.createOscillator(),g=audio.createGain();
+    osc.type='triangle';osc.frequency.value=880;
+    g.gain.setValueAtTime(0.0001,t0+o);g.gain.exponentialRampToValueAtTime(0.4,t0+o+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+o+0.28);
+    osc.connect(g).connect(audio.destination);osc.start(t0+o);osc.stop(t0+o+0.3);
+  });
+}
+function alarm(e){
+  beep();setTimeout(beep,1500);
+  try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(_){}
+  const card=$('#next');
+  $('#next-label').textContent='Now';
+  $('#next-title').textContent=e.title;
+  $('#next-detail').textContent=e.detail||'';
+  card.classList.add('alarm');
+  setTimeout(()=>card.classList.remove('alarm'),8000);
+}
+async function lockScreen(){try{if(navigator.wakeLock&&running)wake=await navigator.wakeLock.request('screen')}catch(_){}}
+
+function save(){store.set('state',state);schedulePush()}
+
+// ---------- Supabase: sign-in and saving ----------
+const SB_URL='https://vltpkoggifxepbzvwhdh.supabase.co';
+const SB_KEY='sb_publishable_9a6nA9_X1XBI_bU5LY2Ohg_rMzQzZAg';
+let sb=null, user=null, pushTimer=null, saved=[], cooks=[], loadedFor=null;
+try{ sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit'}}) }catch(e){ sb=null }
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function setSync(kind,text){$('#sync-dot').className='dot '+(kind||'');$('#sync-text').textContent=text}
+function msg(id,text,err){const el=$(id);el.textContent=text;el.classList.toggle('err',!!err)}
+
+function clean(s){
+  const o=Object.assign({},DEFAULT,s||{});
+  if(!MEATS[o.meat])o.meat=DEFAULT.meat;
+  o.sides=(Array.isArray(o.sides)?o.sides:[]).filter(k=>SIDES[k]);
+  o.kg=Math.min(6,Math.max(0.5,Number(o.kg)||1.5));
+  o.done=Object.assign({},DEFAULT.done,o.done||{});
+  if(!['fan','conv','gas'].includes(o.unit))o.unit='fan';
+  if(!/^\d\d:\d\d$/.test(o.serve))o.serve=DEFAULT.serve;
+  return o;
+}
+function settings(){return {serve:state.serve,unit:state.unit,meat:state.meat,kg:state.kg,done:state.done,sides:state.sides}}
+function describe(s){
+  const m=MEATS[s.meat]||MEATS.none;
+  const meat=s.meat==='none'?'No meat':m.label+(m.fixed?'':` ${s.kg}kg`);
+  const sides=(s.sides||[]).filter(k=>SIDES[k]).map(k=>SIDES[k].label.toLowerCase());
+  return sides.length?`${meat} with ${sides.join(', ')}`:meat;
+}
+function applySettings(s){
+  state=clean(s);ticked=new Set();alerted.clear();
+  store.set('state',state);store.set('ticked',[]);
+  renderControls();render();schedulePush();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function schedulePush(){
+  if(!sb||!user)return;
+  clearTimeout(pushTimer);
+  setSync('busy','Saving…');
+  pushTimer=setTimeout(pushCurrent,700);
+}
+async function pushCurrent(){
+  if(!sb||!user)return;
+  const {error}=await sb.from('roast_current').upsert({user_id:user.id,settings:settings(),ticked:[...ticked],updated_at:new Date().toISOString()});
+  if(error) setSync('err','Not saved to your account yet. Check your connection. It will try again on your next change.');
+  else setSync('ok','Saved to your account.');
+}
+window.addEventListener('online',()=>{if(user)pushCurrent()});
+
+async function loadAll(){
+  if(!sb||!user||loadedFor===user.id)return;
+  loadedFor=user.id;
+  setSync('busy','Loading your roast…');
+  const {data,error}=await sb.from('roast_current').select('settings,ticked').maybeSingle();
+  if(error){setSync('err','Could not load from your account. Using what is on this phone.');}
+  else if(data){
+    state=clean(data.settings);ticked=new Set(data.ticked||[]);
+    store.set('state',state);store.set('ticked',[...ticked]);
+    renderControls();render();setSync('ok','Saved to your account.');
+  } else await pushCurrent();
+  loadSaved();loadCooks();
+}
+
+async function loadSaved(){
+  const {data,error}=await sb.from('roast_saved').select('id,name,settings,created_at').order('created_at',{ascending:false});
+  if(error){msg('#save-msg','Could not load your saved roasts. Pull down to refresh and try again.',true);return}
+  saved=data||[];renderSaved();
+}
+function renderSaved(){
+  $('#saved-list').innerHTML=saved.length?saved.map(r=>`<li class="item"><div class="item-main"><span class="item-name">${esc(r.name)}</span><span class="item-sub">${esc(describe(r.settings||{}))}</span></div>
+    <div class="actions"><button type="button" class="sbtn primary" data-load="${r.id}">Load</button><button type="button" class="sbtn" data-del="saved:${r.id}">Delete</button></div></li>`).join('')
+    :'<li class="item"><span class="item-sub">No saved roasts yet. Set up a roast above and save it here to reuse it.</span></li>';
+}
+
+async function loadCooks(){
+  const {data,error}=await sb.from('roast_cooks').select('id,served_at,name,settings,rating,notes').order('served_at',{ascending:false}).limit(50);
+  if(error){msg('#log-msg','Could not load your cook log. Pull down to refresh and try again.',true);return}
+  cooks=data||[];renderCooks();
+}
+function renderCooks(){
+  const fmt=d=>new Date(d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  $('#cook-list').innerHTML=cooks.length?cooks.map(c=>`<li class="item"><div class="item-main">
+      <span class="item-name">${fmt(c.served_at)}${c.rating?` <span class="stars" aria-label="${c.rating} out of 5">${'★'.repeat(c.rating)}</span>`:''}</span>
+      <span class="item-sub">${esc(c.name)}</span>${c.notes?`<span class="item-notes">${esc(c.notes)}</span>`:''}</div>
+    <div class="actions"><button type="button" class="sbtn primary" data-again="${c.id}">Cook again</button><button type="button" class="sbtn" data-del="cook:${c.id}">Delete</button></div></li>`).join('')
+    :'<li class="item"><span class="item-sub">No cooks logged yet. After dinner, rate it and jot down what to change next time.</span></li>';
+}
+
+function renderAcct(){
+  $('#signed-out').hidden=!!user;
+  $('#signed-in').hidden=!user;
+  $('#acct-link').hidden=!!user;
+  if(user){$('#who').textContent=user.email||'you'}
+  else setSync('', sb?'Saved on this phone only.':'Saved on this phone only. Account saving is unavailable here.');
+}
+
+$('#login').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const email=$('#email').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){msg('#login-msg','Enter your email address, like you@example.com.',true);return}
+  if(!sb){msg('#login-msg','Sign-in could not load. Check your connection and refresh the page.',true);return}
+  $('#login-btn').disabled=true;msg('#login-msg','Sending…');
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  $('#login-btn').disabled=false;
+  if(error) msg('#login-msg',`Could not send the link: ${error.message}`,true);
+  else msg('#login-msg',`Link sent to ${email}. Open it on this device to sign in.`);
+});
+$('#save-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('#save-name').value.trim()||describe(state);
+  const {data,error}=await sb.from('roast_saved').insert({name:name.slice(0,80),settings:settings()}).select('id,name,settings,created_at').single();
+  if(error){msg('#save-msg','Not saved. Check your connection and try again.',true);return}
+  saved.unshift(data);renderSaved();$('#save-name').value='';msg('#save-msg',`Saved "${name}".`);
+});
+$('#log-btn').addEventListener('click',async()=>{
+  const r=$('#rating').value;
+  const {data,error}=await sb.from('roast_cooks').insert({served_at:serveDate().toISOString(),name:describe(state).slice(0,120),settings:settings(),rating:r?Number(r):null,notes:$('#notes').value.trim()}).select('id,served_at,name,settings,rating,notes').single();
+  if(error){msg('#log-msg','Not logged. Check your connection and try again.',true);return}
+  cooks.unshift(data);cooks.sort((a,b)=>new Date(b.served_at)-new Date(a.served_at));renderCooks();
+  $('#notes').value='';$('#rating').value='';msg('#log-msg','Logged.');
+});
+
+async function handleDataClick(b){
+  if(b.dataset.load){const r=saved.find(x=>x.id===b.dataset.load);if(r){applySettings(r.settings);msg('#save-msg',`Loaded "${r.name}".`)}}
+  else if(b.dataset.again){const c=cooks.find(x=>x.id===b.dataset.again);if(c)applySettings(c.settings)}
+  else if(b.dataset.del){
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to delete';setTimeout(()=>{b.classList.remove('armed');b.textContent='Delete'},3000);return}
+    const [kind,id]=b.dataset.del.split(':');
+    const table=kind==='saved'?'roast_saved':'roast_cooks';
+    const {error}=await sb.from(table).delete().eq('id',id);
+    if(error){msg(kind==='saved'?'#save-msg':'#log-msg','Not deleted. Check your connection and try again.',true);return}
+    if(kind==='saved'){saved=saved.filter(x=>x.id!==id);renderSaved()}else{cooks=cooks.filter(x=>x.id!==id);renderCooks()}
+  }
+  else if(b.id==='signout'){await sb.auth.signOut();user=null;loadedFor=null;saved=[];cooks=[];renderAcct()}
+}
+
+// Events
+$('#serve').addEventListener('change',e=>{if(e.target.value){state.serve=e.target.value;save();alerted.clear();render()}});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.day){day=b.dataset.day;alerted.clear();renderControls();render()}
+  else if(b.dataset.unit){state.unit=b.dataset.unit;save();renderControls();render()}
+  else if(b.dataset.meat){state.meat=b.dataset.meat;const m=MEATS[state.meat];if(m.kg)state.kg=m.kg;save();renderControls();render()}
+  else if(b.dataset.side){const k=b.dataset.side;state.sides=state.sides.includes(k)?state.sides.filter(x=>x!==k):[...state.sides,k];state.sides.sort((a,c)=>Object.keys(SIDES).indexOf(a)-Object.keys(SIDES).indexOf(c));save();renderControls();render()}
+  else if(b.classList.contains('tick')){const li=b.closest('.ev'),k=li.dataset.key;ticked.has(k)?ticked.delete(k):ticked.add(k);store.set('ticked',[...ticked]);schedulePush();li.classList.toggle('done',ticked.has(k));b.setAttribute('aria-pressed',ticked.has(k))}
+  else if(b.id==='kg-up'||b.id==='kg-down'){state.kg=Math.min(6,Math.max(0.5,Math.round((state.kg+(b.id==='kg-up'?0.1:-0.1))*10)/10));save();renderControls();render()}
+  else if(b.id==='run'){
+    running=!running;
+    if(running){
+      try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume&&audio.resume()}catch(_){}
+      // don't alarm for steps already passed
+      const now=Date.now(),sd=serveDate();plan.forEach(e=>{if(+sd-e.t*60000<=now)alerted.add(e.key)});
+      beep();lockScreen();
+      b.textContent='Stop timers';b.classList.add('off');
+      $('#run-hint').textContent='Timers on. Keep this page open and the sound up.';
+    } else {
+      try{wake&&wake.release()}catch(_){}wake=null;
+      b.textContent='Start timers';b.classList.remove('off');
+      $('#run-hint').textContent='Keep this page open. An alarm sounds at every step.';
+    }
+  }
+  else if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='signout') handleDataClick(b);
+});
+$('#kg').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.kg=Math.min(6,Math.max(0.5,Math.round(v*10)/10));save()}renderControls();render()});
+$('#doneness').addEventListener('change',e=>{state.done[state.meat]=e.target.value;save();render()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lockScreen()});
+
+// Start: today if the serve time is still ahead, otherwise tomorrow
+(function init(){
+  const [h,m]=state.serve.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);
+  day=d>new Date()?'today':'tomorrow';
+  state=clean(state);
+  renderControls();render();renderAcct();
+  setInterval(tick,1000);
+  if(sb){
+    sb.auth.onAuthStateChange((evt,session)=>{
+      user=session?session.user:null;
+      renderAcct();
+      if(user) setTimeout(loadAll,0);
+    });
+  }
+})();
+</script>
+</body>
+</html>
