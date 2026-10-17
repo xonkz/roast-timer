@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&family=Young+Serif&display=swap">
 <style>
-/* Layout: one narrow column, phone first. Serve time as the hero, an enamel-rimmed "next step" card, then choosers, the run sheet and methods. */
+/* Layout: one narrow column, phone first. Three tabs: Set up (choose, then Generate from a bar fixed to the bottom), Plan (enamel-rimmed next-step card, run sheet, methods), Your roasts. */
 :root{
   --bg:#F1F3EE; --surface:#FFFFFF; --ink:#1D2420; --muted:#5E6A63; --line:#D8DDD4;
   --rim:#1F3A6B; --rim-soft:#E3E9F4; --hot:#B9471A; --hot-soft:#F8E6DC; --sage:#3F6149; --sage-soft:#E1EAE2;
@@ -32,7 +32,9 @@
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
-.wrap{max-width:640px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:28px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 48px;display:flex;flex-direction:column;gap:20px}
+.wrap.has-bar{padding-bottom:120px}
 h1,h2{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0}
 h2{font-size:1.3rem}
 .eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0}
@@ -40,19 +42,91 @@ h2{font-size:1.3rem}
 button,input,select{font:inherit;color:inherit}
 button:disabled{opacity:.45;cursor:not-allowed}
 :focus-visible{outline:2px solid var(--rim);outline-offset:2px}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.view{display:flex;flex-direction:column;gap:28px}
+section{display:flex;flex-direction:column;gap:12px}
+.sub{margin:0;color:var(--muted);font-size:.92rem}
 
-/* Hero */
-.hero{display:flex;flex-direction:column;gap:12px}
+/* Top + tabs */
+.top{display:flex;flex-direction:column;gap:6px}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;padding-block:6px;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:none;padding:10px 6px;border-radius:10px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.95rem}
+.tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:inset 0 -3px 0 var(--rim)}
+.tabs .badge{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--hot);margin-left:6px;vertical-align:middle}
+
+/* Serve time */
 .serve-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font-family:var(--f-display);font-size:clamp(1.7rem,7vw,2.4rem);line-height:1.15}
 .serve-line input[type=time]{font-family:var(--f-mono);font-size:clamp(1.6rem,7vw,2.3rem);font-weight:500;background:var(--surface);border:2px solid var(--rim);border-radius:10px;padding:2px 8px;color:var(--rim);min-width:0;max-width:100%}
-.serve-line input[type=time]:disabled{border-style:dashed;opacity:1}
+.serve-line .t{font-family:var(--f-mono);font-weight:500;color:var(--rim)}
+.serve-day{font-family:var(--f-body);font-size:1rem;color:var(--muted);font-weight:500}
 .hero-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
 .seg button{border:0;background:none;padding:6px 12px;font-size:.88rem;cursor:pointer;color:var(--muted)}
 .seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
 .summary{color:var(--muted);font-size:.95rem;margin:0}
 .summary strong{color:var(--ink);font-weight:600}
-.locknote{font-size:.88rem;color:var(--rim);font-weight:600;margin:0}
+.locknote{font-size:.92rem;color:var(--rim);font-weight:600;margin:0;background:var(--rim-soft);padding:10px 12px;border-radius:10px}
+
+/* Choosers */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.95rem}
+.chip[aria-pressed=true]{background:var(--rim);border-color:var(--rim);color:var(--surface);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.stepper button{border:0;background:none;width:40px;height:40px;font-size:1.2rem;cursor:pointer}
+.stepper input,.stepper output{width:64px;border:0;background:none;text-align:center;font-family:var(--f-mono);font-size:1rem;padding:0}
+.lbl{font-size:.9rem;color:var(--muted)}
+select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px}
+
+/* Sides list */
+.sides{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.side{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.side-tog{display:flex;align-items:center;gap:10px;border:0;background:none;padding:4px 0;font-weight:600;cursor:pointer;text-align:left;min-width:0}
+.side-tog .cb{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;color:transparent;flex:none;font-size:.85rem;background:var(--surface)}
+.side-tog[aria-pressed=true] .cb{background:var(--rim);border-color:var(--rim);color:var(--surface)}
+.side-tog[aria-pressed=false]{color:var(--muted);font-weight:500}
+.side-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mini{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.mini button{border:0;background:none;width:34px;height:32px;cursor:pointer;font-size:1.05rem}
+.mini span{font-size:.85rem;min-width:84px;text-align:center;font-variant-numeric:tabular-nums}
+.mini.fixed span{padding:0 12px;min-width:0;color:var(--muted)}
+
+/* Kitchen */
+details.kit{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.kit summary{cursor:pointer;padding:14px;display:flex;flex-direction:column;gap:2px;list-style:none}
+details.kit summary::-webkit-details-marker{display:none}
+.kit-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.kit-head strong{font-size:1rem}
+.kit-head span{color:var(--rim);font-weight:600;font-size:.88rem}
+details.kit[open] .kit-head span{visibility:hidden}
+.kit-sum{font-size:.88rem;color:var(--muted)}
+.kit-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:14px}
+.kit-row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.kit-row .lbl{color:var(--ink);font-weight:500}
+
+/* Fit check */
+.fit{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.fit h3{margin:0;font-size:1rem}
+.meters{display:flex;flex-direction:column;gap:8px}
+.meter{display:grid;grid-template-columns:minmax(90px,auto) 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sage);border-radius:99px}
+.bar.over i{background:var(--hot)}
+.meter .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted)}
+.meter .val.over{color:var(--hot);font-weight:600}
+
+/* Notes */
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{border-left:3px solid var(--hot);background:var(--hot-soft);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.92rem;margin:0}
+.note.info{border-left-color:var(--plum);background:var(--plum-soft)}
+.note.ok{border-left-color:var(--sage);background:var(--sage-soft)}
+.stale{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+
+/* Generate bar */
+.genbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+.genbar-in{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+.genbar .btn{width:100%;padding:14px 16px;font-size:1.05rem}
+.genbar .hint{text-align:center}
 
 /* Next card (the enamel tin) */
 .next{background:var(--surface);border:3px solid var(--rim);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
@@ -71,40 +145,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .btn.off{background:var(--rim-soft);color:var(--rim)}
 .btn.armed{background:var(--hot);color:var(--surface)}
 .hint{font-size:.82rem;color:var(--muted);margin:0}
-
-/* Choosers */
-section{display:flex;flex-direction:column;gap:12px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.95rem}
-.chip[aria-pressed=true]{background:var(--rim);border-color:var(--rim);color:var(--surface);font-weight:600}
-.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
-.stepper button{border:0;background:none;width:40px;height:40px;font-size:1.2rem;cursor:pointer}
-.stepper input,.stepper output{width:64px;border:0;background:none;text-align:center;font-family:var(--f-mono);font-size:1rem;padding:0}
-.lbl{font-size:.9rem;color:var(--muted)}
-select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px}
-.how{display:flex;flex-direction:column;gap:8px}
-.how-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
-.how-row:first-child{border-top:0}
-.how-name{font-weight:600}
-
-/* Kitchen */
-details.kit{background:var(--surface);border:1px solid var(--line);border-radius:12px}
-details.kit summary{cursor:pointer;padding:14px;display:flex;flex-direction:column;gap:2px;list-style:none}
-details.kit summary::-webkit-details-marker{display:none}
-.kit-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
-.kit-head strong{font-size:1rem}
-.kit-head span{color:var(--rim);font-weight:600;font-size:.88rem}
-details.kit[open] .kit-head span{visibility:hidden}
-.kit-sum{font-size:.88rem;color:var(--muted)}
-.kit-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:14px}
-.kit-row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
-.kit-row .lbl{color:var(--ink);font-weight:500}
-
-/* Plan notes */
-.notes{display:flex;flex-direction:column;gap:8px}
-.note{border-left:3px solid var(--hot);background:var(--hot-soft);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.92rem;margin:0}
-.note.info{border-left-color:var(--plum);background:var(--plum-soft)}
 
 /* Run sheet */
 .sheet{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -137,6 +177,10 @@ details.kit[open] .kit-head span{visibility:hidden}
 .m .warn{color:var(--hot)}
 .foot{font-size:.82rem;color:var(--muted);margin:0}
 
+/* Empty plan */
+.empty{background:var(--surface);border:2px dashed var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.empty h2{font-size:1.25rem}
+
 /* Account + saved data */
 .acctbar{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:.85rem;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
@@ -164,157 +208,210 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
 </head>
 <body>
 
-<div class="wrap">
-  <header class="hero">
+<div class="wrap" id="wrap">
+  <header class="top">
     <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span> <a class="link" href="#account" id="acct-link">Sign in to keep it safe</a></div>
     <p class="eyebrow">Roast Dinner Timer</p>
-    <label class="serve-line" for="serve">On the table at <input type="time" id="serve" step="300"></label>
-    <div class="hero-row" id="day-row">
-      <div class="seg" role="group" aria-label="Day">
-        <button type="button" data-day="today" id="day-today">Today</button>
-        <button type="button" data-day="tomorrow" id="day-tomorrow">Tomorrow</button>
-      </div>
-      <div class="seg" role="group" aria-label="Oven temperature units">
-        <button type="button" data-unit="fan" id="u-fan">Fan</button>
-        <button type="button" data-unit="conv" id="u-conv">Conventional</button>
-        <button type="button" data-unit="gas" id="u-gas">Gas</button>
-      </div>
-    </div>
-    <p class="locknote" id="locknote" hidden></p>
-    <p class="summary" id="summary"></p>
   </header>
 
-  <div class="next idle" id="next" aria-live="polite">
-    <p class="eyebrow" id="next-label">Start cooking at</p>
-    <div class="count" id="count">--:--</div>
-    <p class="next-title" id="next-title"></p>
-    <p class="next-detail" id="next-detail"></p>
-    <div class="next-meta">
-      <button class="btn" id="run" type="button">Lock in and start</button>
-      <p class="hint" id="run-hint"></p>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tab-setup" data-tab="setup" aria-controls="view-setup">Set up</button>
+    <button type="button" role="tab" id="tab-plan" data-tab="plan" aria-controls="view-plan">Plan</button>
+    <button type="button" role="tab" id="tab-roasts" data-tab="roasts" aria-controls="view-roasts">Your roasts</button>
+  </nav>
+
+  <!-- SET UP -->
+  <div class="view" id="view-setup" role="tabpanel" aria-labelledby="tab-setup">
+    <p class="locknote" id="setup-lock" hidden>Your timers are running. Stop them on the Plan tab to change anything here.</p>
+    <fieldset id="setup-fs">
+      <div class="view">
+        <section>
+          <label class="serve-line" for="serve">On the table at <input type="time" id="serve" step="300"></label>
+          <div class="hero-row">
+            <div class="seg" role="group" aria-label="Day">
+              <button type="button" data-day="today">Today</button>
+              <button type="button" data-day="tomorrow">Tomorrow</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>The meat</h2>
+          <div class="chips" id="meats"></div>
+          <div class="row" id="meat-opts">
+            <span class="lbl">Weight</span>
+            <div class="stepper">
+              <button type="button" id="kg-down" aria-label="Less weight">−</button>
+              <input id="kg" inputmode="decimal" aria-label="Weight in kilograms">
+              <button type="button" id="kg-up" aria-label="More weight">+</button>
+            </div>
+            <span class="lbl">kg</span>
+            <select id="doneness" aria-label="How you like it"></select>
+          </div>
+        </section>
+
+        <section>
+          <h2>Sides</h2>
+          <p class="sub">Tick what you're making and choose how each one cooks. Your choices are kept as your usual way for next time.</p>
+          <div class="sides" id="sides"></div>
+        </section>
+
+        <section>
+          <details class="kit" id="kit">
+            <summary>
+              <div class="kit-head"><strong>Your kitchen</strong><span>Edit</span></div>
+              <div class="kit-sum" id="kit-sum"></div>
+            </summary>
+            <div class="kit-body">
+              <div class="kit-row">
+                <span class="lbl">Main oven trays</span>
+                <div class="stepper">
+                  <button type="button" id="sh-down" aria-label="Fewer trays">−</button>
+                  <output id="shelves" aria-live="polite"></output>
+                  <button type="button" id="sh-up" aria-label="More trays">+</button>
+                </div>
+              </div>
+              <div class="kit-row">
+                <span class="lbl">Top oven for warming</span>
+                <div class="seg" role="group" aria-label="Top oven">
+                  <button type="button" data-kit="topOven:1">Yes</button>
+                  <button type="button" data-kit="topOven:0">No</button>
+                </div>
+              </div>
+              <div class="kit-row">
+                <span class="lbl">Air fryer</span>
+                <div class="seg" role="group" aria-label="Air fryer">
+                  <button type="button" data-kit="airfryer:none">None</button>
+                  <button type="button" data-kit="airfryer:single">Single</button>
+                  <button type="button" data-kit="airfryer:dual">Dual zone</button>
+                </div>
+              </div>
+              <div class="kit-row">
+                <span class="lbl">Steamer</span>
+                <div class="seg" role="group" aria-label="Steamer">
+                  <button type="button" data-kit="steamer:1">Yes</button>
+                  <button type="button" data-kit="steamer:0">No</button>
+                </div>
+              </div>
+              <div class="kit-row">
+                <span class="lbl">Oven temps shown as</span>
+                <div class="seg" role="group" aria-label="Oven temperature units">
+                  <button type="button" data-unit="fan">Fan</button>
+                  <button type="button" data-unit="conv">Conventional</button>
+                  <button type="button" data-unit="gas">Gas</button>
+                </div>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section class="fit" aria-live="polite">
+          <h3>Will it fit?</h3>
+          <p class="summary" id="fit-sum"></p>
+          <div class="meters" id="meters"></div>
+          <div class="notes" id="fit-notes"></div>
+        </section>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- PLAN -->
+  <div class="view" id="view-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <div class="empty" id="no-plan">
+      <h2>No plan yet</h2>
+      <p class="sub">Choose your time, meat and sides, then tap Generate plan.</p>
+      <button type="button" class="btn" data-goto="setup">Set up your roast</button>
+    </div>
+
+    <div class="view" id="plan-wrap">
+      <section>
+        <h1 class="serve-line">On the table at <span class="t" id="p-time"></span> <span class="serve-day" id="p-day"></span></h1>
+        <p class="summary" id="summary"></p>
+        <p class="note info stale" id="stale" hidden><span>You've changed the setup since this plan was made.</span> <button type="button" class="sbtn primary" id="regen">Update plan</button></p>
+      </section>
+
+      <div class="next idle" id="next" aria-live="polite">
+        <p class="eyebrow" id="next-label">Start cooking at</p>
+        <div class="count" id="count">--:--</div>
+        <p class="next-title" id="next-title"></p>
+        <p class="next-detail" id="next-detail"></p>
+        <div class="next-meta">
+          <button class="btn" id="run" type="button">Lock in and start</button>
+          <p class="hint" id="run-hint"></p>
+        </div>
+      </div>
+
+      <section>
+        <h2>Run sheet</h2>
+        <div class="notes" id="notes"></div>
+        <ol class="sheet" id="sheet"></ol>
+      </section>
+
+      <section>
+        <h2>Methods</h2>
+        <div class="methods" id="methods"></div>
+        <p class="foot">Times are a guide. Ovens and air fryers vary, so check the meat with a thermometer and trust your eyes for the sides.</p>
+      </section>
     </div>
   </div>
 
-  <section>
-    <h2>The meat</h2>
-    <div class="chips" id="meats"></div>
-    <div class="row" id="meat-opts">
-      <span class="lbl">Weight</span>
-      <div class="stepper">
-        <button type="button" id="kg-down" aria-label="Less weight">−</button>
-        <input id="kg" inputmode="decimal" aria-label="Weight in kilograms">
-        <button type="button" id="kg-up" aria-label="More weight">+</button>
-      </div>
-      <span class="lbl">kg</span>
-      <select id="doneness" aria-label="How you like it"></select>
-    </div>
-  </section>
+  <!-- YOUR ROASTS -->
+  <div class="view" id="view-roasts" role="tabpanel" aria-labelledby="tab-roasts" hidden>
+    <section id="account">
+      <h2>Your roasts</h2>
 
-  <section>
-    <h2>Sides</h2>
-    <div class="chips" id="sides"></div>
-    <div class="how" id="how"></div>
-  </section>
-
-  <section>
-    <details class="kit" id="kit">
-      <summary>
-        <div class="kit-head"><strong>Your kitchen</strong><span>Edit</span></div>
-        <div class="kit-sum" id="kit-sum"></div>
-      </summary>
-      <div class="kit-body">
-        <div class="kit-row">
-          <span class="lbl">Main oven shelves</span>
-          <div class="stepper">
-            <button type="button" id="sh-down" aria-label="Fewer shelves">−</button>
-            <output id="shelves" aria-live="polite"></output>
-            <button type="button" id="sh-up" aria-label="More shelves">+</button>
-          </div>
-        </div>
-        <div class="kit-row">
-          <span class="lbl">Top oven for warming</span>
-          <div class="seg" role="group" aria-label="Top oven">
-            <button type="button" data-kit="topOven:1">Yes</button>
-            <button type="button" data-kit="topOven:0">No</button>
-          </div>
-        </div>
-        <div class="kit-row">
-          <span class="lbl">Air fryer</span>
-          <div class="seg" role="group" aria-label="Air fryer">
-            <button type="button" data-kit="airfryer:none">None</button>
-            <button type="button" data-kit="airfryer:single">Single</button>
-            <button type="button" data-kit="airfryer:dual">Dual zone</button>
-          </div>
-        </div>
-        <div class="kit-row">
-          <span class="lbl">Steamer</span>
-          <div class="seg" role="group" aria-label="Steamer">
-            <button type="button" data-kit="steamer:1">Yes</button>
-            <button type="button" data-kit="steamer:0">No</button>
-          </div>
-        </div>
-      </div>
-    </details>
-  </section>
-
-  <section>
-    <h2>Run sheet</h2>
-    <div class="notes" id="notes"></div>
-    <ol class="sheet" id="sheet"></ol>
-  </section>
-
-  <section id="account">
-    <h2>Your roasts</h2>
-
-    <div class="box" id="signed-out">
-      <form id="login" class="row" novalidate>
-        <label for="email" class="lbl" style="flex-basis:100%">Sign in with your email to save roasts and keep a cook log on any device. No password needed.</label>
-        <input class="field" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
-        <button class="btn" type="submit" id="login-btn">Email me a link</button>
-      </form>
-      <p class="msg" id="login-msg" aria-live="polite"></p>
-    </div>
-
-    <div id="signed-in" hidden style="display:flex;flex-direction:column;gap:12px">
-      <div class="box">
-        <h3>Save this roast</h3>
-        <form id="save-form" class="row" novalidate>
-          <input class="field" id="save-name" maxlength="80" placeholder="Sunday chicken for 4" aria-label="Name for this roast">
-          <button class="btn" type="submit">Save</button>
+      <div class="box" id="signed-out">
+        <form id="login" class="row" novalidate>
+          <label for="email" class="lbl" style="flex-basis:100%">Sign in with your email to save roasts and keep a cook log on any device. No password needed.</label>
+          <input class="field" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+          <button class="btn" type="submit" id="login-btn">Email me a link</button>
         </form>
-        <p class="msg" id="save-msg" aria-live="polite"></p>
-        <ul class="list" id="saved-list"></ul>
+        <p class="msg" id="login-msg" aria-live="polite"></p>
       </div>
 
-      <div class="box" id="log-box">
-        <h3>Log this cook</h3>
-        <div class="row">
-          <label for="rating" class="lbl">How did it go?</label>
-          <select id="rating">
-            <option value="">No rating</option>
-            <option value="5">★★★★★ Perfect</option>
-            <option value="4">★★★★ Great</option>
-            <option value="3">★★★ Fine</option>
-            <option value="2">★★ Needs work</option>
-            <option value="1">★ Rescue job</option>
-          </select>
+      <div id="signed-in" hidden style="display:flex;flex-direction:column;gap:12px">
+        <div class="box">
+          <h3>Save this roast</h3>
+          <p class="msg">Saves the meat and sides from Set up. Cooking methods follow your usual way.</p>
+          <form id="save-form" class="row" novalidate>
+            <input class="field" id="save-name" maxlength="80" placeholder="Sunday chicken for 4" aria-label="Name for this roast">
+            <button class="btn" type="submit">Save</button>
+          </form>
+          <p class="msg" id="save-msg" aria-live="polite"></p>
+          <ul class="list" id="saved-list"></ul>
         </div>
-        <label for="notes-in" class="lbl">Notes for next time</label>
-        <textarea class="field" id="notes-in" maxlength="4000" placeholder="Potatoes needed 10 min longer. Chicken was perfect at 1 hr 25."></textarea>
-        <div class="row"><button class="btn" type="button" id="log-btn">Log this cook</button></div>
-        <p class="msg" id="log-msg" aria-live="polite"></p>
-        <ul class="list" id="cook-list"></ul>
+
+        <div class="box" id="log-box">
+          <h3>Log this cook</h3>
+          <div class="row">
+            <label for="rating" class="lbl">How did it go?</label>
+            <select id="rating">
+              <option value="">No rating</option>
+              <option value="5">★★★★★ Perfect</option>
+              <option value="4">★★★★ Great</option>
+              <option value="3">★★★ Fine</option>
+              <option value="2">★★ Needs work</option>
+              <option value="1">★ Rescue job</option>
+            </select>
+          </div>
+          <label for="notes-in" class="lbl">Notes for next time</label>
+          <textarea class="field" id="notes-in" maxlength="4000" placeholder="Potatoes needed 5 min longer in the air fryer. Chicken was perfect at 1 hr 25."></textarea>
+          <div class="row"><button class="btn" type="button" id="log-btn">Log this cook</button></div>
+          <p class="msg" id="log-msg" aria-live="polite"></p>
+          <ul class="list" id="cook-list"></ul>
+        </div>
+
+        <p class="acctbar">Signed in as <strong id="who"></strong> <button type="button" class="link" id="signout">Sign out</button></p>
       </div>
+    </section>
+  </div>
+</div>
 
-      <p class="acctbar">Signed in as <strong id="who"></strong> <button type="button" class="link" id="signout">Sign out</button></p>
-    </div>
-  </section>
-
-  <section>
-    <h2>Methods</h2>
-    <div class="methods" id="methods"></div>
-    <p class="foot" id="method-foot">Times are a guide. Ovens and air fryers vary, so check the meat with a thermometer and trust your eyes for the sides.</p>
-  </section>
+<div class="genbar" id="genbar" hidden>
+  <div class="genbar-in">
+    <button type="button" class="btn" id="gen">Generate plan</button>
+    <p class="hint" id="gen-hint"></p>
+  </div>
 </div>
 
 <script>
@@ -340,10 +437,11 @@ const MEATS = {
   none:{label:'No meat'}
 };
 
-// Each side has one or more ways to cook it. Steps: [minutes before serving, title, detail, where]
+// Each side has one or more ways to cook it. Steps: [minutes before serving, title, detail, where].
+// Oven temps are fan; air fryer temps are as set on the air fryer. space = default trays (oven) or drawers (air fryer).
 const SIDES = {
   potatoes:{label:'Roast potatoes',order:['oven','airfryer'],how:{
-    oven:{label:'Oven',device:'oven',temp:200,in:70,out:0,time:'10 min parboil + 1 hr',
+    oven:{label:'Oven',device:'oven',temp:200,in:70,out:0,space:1,time:'10 min parboil + 1 hr',
       method:'Parboil, rough up the edges, then roast in very hot fat, turning once.',check:'Deep golden and crunchy at the edges.',
       steps:[[80,'Parboil the potatoes','Peel and cut into large chunks. Cover with cold salted water, bring to the boil and simmer 8–10 minutes.','hob'],
         [70,'Heat the fat','4 tbsp goose fat or oil in a roasting tin, into the main oven until very hot.','oven'],
@@ -351,7 +449,7 @@ const SIDES = {
         [60,'Potatoes in','Tip carefully into the hot fat, turn to coat and season.','oven'],
         [30,'Turn the potatoes','Turn each one so they crisp evenly.','oven'],
         [0,'Potatoes out','Drain on kitchen paper and salt.','oven']]},
-    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:30,out:0,time:'8 min parboil + 30 min',
+    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:30,out:0,space:1,time:'8 min parboil + 30 min',
       method:'Parboil, rough up, toss in a little oil, then air fry in a single layer, shaking halfway.',check:'Golden and crisp all over.',
       steps:[[45,'Parboil the potatoes','Peel and cut into medium chunks. Cover with cold salted water, bring to the boil and simmer 8 minutes.','hob'],
         [35,'Drain the potatoes','Steam dry for 2 minutes, shake to rough up, then toss in 1–2 tbsp oil and salt.','prep'],
@@ -359,123 +457,183 @@ const SIDES = {
         [15,'Shake the potatoes','','airfryer'],
         [0,'Potatoes out','','airfryer']]}}},
   parsnips:{label:'Parsnips',order:['oven','airfryer'],how:{
-    oven:{label:'Oven',device:'oven',temp:200,in:40,out:0,time:'35–40 min',
+    oven:{label:'Oven',device:'oven',temp:200,in:40,out:0,space:1,time:'35–40 min',
       method:'Quarter lengthways, toss in oil and salt, roast and glaze with honey near the end.',check:'Golden and sticky, soft in the middle.',
       steps:[[45,'Prep the parsnips','Peel, quarter lengthways and cut out any woody core.','prep'],
         [40,'Parsnips in','Toss in oil and salt on a tray.','oven'],
         [20,'Turn and glaze the parsnips','Drizzle with a little honey or maple syrup.','oven'],
         [0,'Parsnips out','','oven']]},
-    airfryer:{label:'Air fryer',device:'airfryer',temp:190,in:20,out:0,time:'18–20 min',
+    airfryer:{label:'Air fryer',device:'airfryer',temp:190,in:20,out:0,space:1,time:'18–20 min',
       method:'Quarter lengthways, toss in oil and salt, air fry and glaze halfway.',check:'Golden at the edges, soft in the middle.',
       steps:[[25,'Prep the parsnips','Peel, quarter lengthways, cut out any woody core and toss in oil and salt.','prep'],
         [20,'Parsnips in the air fryer','190°C.','airfryer'],
         [10,'Shake and glaze the parsnips','Drizzle with a little honey or maple syrup.','airfryer'],
         [0,'Parsnips out','','airfryer']]}}},
-  carrots:{label:'Carrots',order:['steam','boil'],how:{
-    steam:{label:'Steamer',device:'steam',time:'12–15 min',method:'Steam batons until just tender, then toss with butter.',check:'A knife slides in with a little resistance.',
+  carrots:{label:'Carrots',order:['steam','boil','oven','airfryer'],how:{
+    steam:{label:'Steam',device:'steam',time:'12–15 min',method:'Steam batons until just tender, then toss with butter.',check:'A knife slides in with a little resistance.',
       steps:[[20,'Prep the carrots','Peel and cut into batons.','prep'],[15,'Carrots in the steamer','12–15 minutes.','steam'],[0,'Carrots out','Toss with a knob of butter and black pepper.','steam']]},
     boil:{label:'Boil',device:'hob',time:'10–12 min',method:'Boil batons in salted water, then toss with butter.',check:'A knife slides in with a little resistance.',
-      steps:[[18,'Prep the carrots','Peel and cut into batons.','prep'],[12,'Carrots on to boil','Boiling salted water, 10–12 minutes.','hob'],[0,'Drain the carrots','Toss with a knob of butter and black pepper.','hob']]}}},
-  greens:{label:'Greens',order:['steam','boil'],how:{
-    steam:{label:'Steamer',device:'steam',time:'5–6 min',method:'Steam broccoli, cabbage or green beans until bright and just tender.',check:'Bright green with a little bite.',
-      steps:[[6,'Greens in the steamer','Broccoli, cabbage or green beans, 5–6 minutes.','steam'],[0,'Greens out','Season and add a little butter.','steam']]},
-    boil:{label:'Boil',device:'hob',time:'3–4 min',method:'Boil broccoli, cabbage or green beans briefly in salted water.',check:'Bright green with a little bite.',
-      steps:[[4,'Greens on to boil','Boiling salted water, 3–4 minutes.','hob'],[0,'Drain the greens','Season and add a little butter.','hob']]}}},
-  peas:{label:'Peas',order:['boil'],how:{
+      steps:[[18,'Prep the carrots','Peel and cut into batons.','prep'],[12,'Carrots on to boil','Boiling salted water, 10–12 minutes.','hob'],[0,'Drain the carrots','Toss with a knob of butter and black pepper.','hob']]},
+    oven:{label:'Roast',device:'oven',temp:200,in:35,out:0,space:1,time:'35 min',method:'Halved lengthways, roasted in oil and glazed with honey.',check:'Tender with caramelised edges.',
+      steps:[[40,'Prep the carrots','Peel and halve lengthways. Toss in oil, salt and a few thyme sprigs.','prep'],[35,'Carrots in','','oven'],[15,'Glaze the carrots','Drizzle with honey and turn.','oven'],[0,'Carrots out','','oven']]},
+    airfryer:{label:'Air fryer',device:'airfryer',temp:190,in:18,out:0,space:1,time:'18 min',method:'Halved lengthways, air fried in oil and glazed halfway.',check:'Tender with caramelised edges.',
+      steps:[[23,'Prep the carrots','Peel and halve lengthways. Toss in oil and salt.','prep'],[18,'Carrots in the air fryer','190°C.','airfryer'],[9,'Shake and glaze the carrots','Drizzle with honey.','airfryer'],[0,'Carrots out','','airfryer']]}}},
+  tenderstem:{label:'Tenderstem broccoli',order:['steam','boil','airfryer'],how:{
+    steam:{label:'Steam',device:'steam',time:'5–6 min',method:'Steam until bright green and just tender.',check:'Stems tender with a little bite.',
+      steps:[[10,'Trim the tenderstem','Trim the woody ends.','prep'],[6,'Tenderstem in the steamer','5–6 minutes.','steam'],[0,'Tenderstem out','Season and add a little butter or a squeeze of lemon.','steam']]},
+    boil:{label:'Boil',device:'hob',time:'3–4 min',method:'Boil briefly in salted water.',check:'Stems tender with a little bite.',
+      steps:[[10,'Trim the tenderstem','Trim the woody ends.','prep'],[4,'Tenderstem on to boil','Boiling salted water, 3–4 minutes.','hob'],[0,'Drain the tenderstem','Season and add a little butter.','hob']]},
+    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:8,out:0,space:1,time:'6–8 min',method:'Tossed in oil and salt, air fried until the tips char.',check:'Charred tips, tender stems.',
+      steps:[[12,'Prep the tenderstem','Trim the woody ends, toss in 1 tsp oil and salt.','prep'],[8,'Tenderstem in the air fryer','200°C.','airfryer'],[4,'Shake the tenderstem','','airfryer'],[0,'Tenderstem out','Squeeze of lemon over the top.','airfryer']]}}},
+  beans:{label:'Green beans',order:['steam','boil','airfryer'],how:{
+    steam:{label:'Steam',device:'steam',time:'5–6 min',method:'Steam until bright green and just tender.',check:'Bright green with a little bite.',
+      steps:[[10,'Top the green beans','Trim the stalk ends.','prep'],[6,'Green beans in the steamer','5–6 minutes.','steam'],[0,'Green beans out','Season and add a little butter.','steam']]},
+    boil:{label:'Boil',device:'hob',time:'4–5 min',method:'Boil briefly in salted water.',check:'Bright green with a little bite.',
+      steps:[[10,'Top the green beans','Trim the stalk ends.','prep'],[5,'Green beans on to boil','Boiling salted water, 4–5 minutes.','hob'],[0,'Drain the green beans','Season and add a little butter.','hob']]},
+    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:10,out:0,space:1,time:'8–10 min',method:'Tossed in oil and garlic, air fried until blistered.',check:'Blistered in places, still bright green.',
+      steps:[[14,'Prep the green beans','Trim the stalk ends, toss in 1 tsp oil, salt and a little garlic.','prep'],[10,'Green beans in the air fryer','200°C.','airfryer'],[5,'Shake the green beans','','airfryer'],[0,'Green beans out','','airfryer']]}}},
+  sprouts:{label:'Sprouts',order:['steam','boil','oven','airfryer'],how:{
+    steam:{label:'Steam',device:'steam',time:'6–8 min',method:'Steam whole until just tender.',check:'A knife slides into the base easily.',
+      steps:[[15,'Trim the sprouts','Trim the bases and pull off any tired outer leaves.','prep'],[8,'Sprouts in the steamer','6–8 minutes.','steam'],[0,'Sprouts out','Toss with butter and black pepper.','steam']]},
+    boil:{label:'Boil',device:'hob',time:'5–6 min',method:'Boil whole in salted water.',check:'A knife slides into the base easily.',
+      steps:[[15,'Trim the sprouts','Trim the bases and pull off any tired outer leaves.','prep'],[6,'Sprouts on to boil','Boiling salted water, 5–6 minutes.','hob'],[0,'Drain the sprouts','Toss with butter and black pepper.','hob']]},
+    oven:{label:'Roast',device:'oven',temp:200,in:25,out:0,space:1,time:'25 min',method:'Halved and roasted cut-side down in oil.',check:'Browned on the cut side, tender inside.',
+      steps:[[30,'Prep the sprouts','Trim, halve and toss in oil and salt.','prep'],[25,'Sprouts in','Cut-side down on a tray.','oven'],[0,'Sprouts out','','oven']]},
+    airfryer:{label:'Air fryer',device:'airfryer',temp:190,in:15,out:0,space:1,time:'15 min',method:'Halved, tossed in oil and air fried until crisp at the edges.',check:'Crisp outer leaves, tender inside.',
+      steps:[[20,'Prep the sprouts','Trim, halve and toss in oil and salt.','prep'],[15,'Sprouts in the air fryer','190°C.','airfryer'],[8,'Shake the sprouts','','airfryer'],[0,'Sprouts out','','airfryer']]}}},
+  greens:{label:'Cabbage',order:['steam','boil'],how:{
+    steam:{label:'Steam',device:'steam',time:'5–6 min',method:'Shredded and steamed until just wilted.',check:'Bright and just tender.',
+      steps:[[10,'Shred the cabbage','Remove the core and slice finely.','prep'],[6,'Cabbage in the steamer','5–6 minutes.','steam'],[0,'Cabbage out','Toss with butter and black pepper.','steam']]},
+    boil:{label:'Boil',device:'hob',time:'3–4 min',method:'Shredded and boiled briefly in salted water.',check:'Bright and just tender.',
+      steps:[[10,'Shred the cabbage','Remove the core and slice finely.','prep'],[4,'Cabbage on to boil','Boiling salted water, 3–4 minutes.','hob'],[0,'Drain the cabbage','Toss with butter and black pepper.','hob']]}}},
+  peas:{label:'Peas',order:['boil','steam'],how:{
     boil:{label:'Boil',device:'hob',time:'3 min',method:'Boil frozen peas briefly.',check:'Bright green and tender.',
-      steps:[[4,'Peas on','Into boiling water for 3 minutes.','hob'],[0,'Drain the peas','','hob']]}}},
+      steps:[[4,'Peas on','Into boiling water for 3 minutes.','hob'],[0,'Drain the peas','','hob']]},
+    steam:{label:'Steam',device:'steam',time:'4 min',method:'Steam frozen peas briefly.',check:'Bright green and tender.',
+      steps:[[4,'Peas in the steamer','4 minutes.','steam'],[0,'Peas out','','steam']]}}},
   yorkshires:{label:'Yorkshires',order:['oven','airfryer'],how:{
-    oven:{label:'Oven',device:'oven',temp:200,in:30,out:0,time:'8 min tin heat + 20–22 min',
+    oven:{label:'Oven',device:'oven',temp:200,in:30,out:0,space:2,time:'8 min tin heat + 20–22 min',
       method:'Equal volumes of eggs, flour and milk, poured into smoking-hot oil.',check:'Tall, golden and crisp. Keep the door shut while they rise.',
       steps:[[90,'Make the Yorkshire batter','Whisk equal volumes of eggs, plain flour and milk with a pinch of salt. Leave to rest at room temperature.','prep'],
-        [30,'Heat the Yorkshire tin','1 tsp oil or beef dripping in each hole of a muffin tin, into the main oven until smoking hot.','oven'],
+        [30,'Heat the Yorkshire tins','1 tsp oil or beef dripping in each hole of the tins, into the main oven until smoking hot.','oven'],
         [22,'Yorkshires in','Give the batter a whisk and pour it quickly into the hot oil. Do not open the door.','oven'],
         [0,'Yorkshires out','','oven']]},
-    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:20,out:0,time:'5 min cup heat + 15 min',
+    airfryer:{label:'Air fryer',device:'airfryer',temp:200,in:20,out:0,space:1,time:'5 min tin heat + 15 min',
       method:'The same batter, poured into hot oil in small tins or ramekins in the drawer.',check:'Risen and golden. Keep the drawer shut for the first 12 minutes.',
       steps:[[90,'Make the Yorkshire batter','Whisk equal volumes of eggs, plain flour and milk with a pinch of salt. Leave to rest at room temperature.','prep'],
         [20,'Heat the Yorkshire tins','1 tsp oil in each small tin or ramekin, 200°C for 5 minutes until smoking hot.','airfryer'],
         [15,'Yorkshires in','Pour the batter in quickly, half-filling each tin. Keep the drawer shut for 12 minutes.','airfryer'],
         [0,'Yorkshires out','','airfryer']]}}},
   stuffing:{label:'Stuffing',order:['airfryer','oven'],how:{
-    oven:{label:'Oven',device:'oven',temp:190,in:30,out:0,time:'30 min',method:'Shape into balls or press into a dish and bake.',check:'Golden on top, hot through.',
+    oven:{label:'Oven',device:'oven',temp:190,in:30,out:0,space:1,time:'30 min',method:'Shape into balls or press into a dish and bake.',check:'Golden on top, hot through.',
       steps:[[35,'Shape the stuffing','Roll into balls or press into a small greased dish.','prep'],[30,'Stuffing in','','oven'],[0,'Stuffing out','','oven']]},
-    airfryer:{label:'Air fryer',device:'airfryer',temp:180,in:15,out:0,time:'15 min',method:'Roll into balls and air fry, shaking once.',check:'Crisp outside, hot through.',
+    airfryer:{label:'Air fryer',device:'airfryer',temp:180,in:15,out:0,space:1,time:'15 min',method:'Roll into balls and air fry, shaking once.',check:'Crisp outside, hot through.',
       steps:[[20,'Shape the stuffing','Roll into balls.','prep'],[15,'Stuffing balls in the air fryer','180°C.','airfryer'],[0,'Stuffing out','','airfryer']]}}},
   pigs:{label:'Pigs in blankets',order:['airfryer','oven'],how:{
-    oven:{label:'Oven',device:'oven',temp:190,in:30,out:0,time:'25–30 min',method:'Chipolatas wrapped in streaky bacon, roasted seam-side down.',check:'Bacon crisp, sausages cooked through.',
+    oven:{label:'Oven',device:'oven',temp:190,in:30,out:0,space:1,time:'25–30 min',method:'Chipolatas wrapped in streaky bacon, roasted seam-side down.',check:'Bacon crisp, sausages cooked through.',
       steps:[[35,'Wrap the pigs in blankets','Wrap each chipolata in half a rasher of streaky bacon.','prep'],[30,'Pigs in blankets in','Seam-side down on a tray.','oven'],[15,'Turn the pigs in blankets','','oven'],[0,'Pigs in blankets out','','oven']]},
-    airfryer:{label:'Air fryer',device:'airfryer',temp:180,in:15,out:0,time:'12–15 min',method:'Chipolatas wrapped in streaky bacon, air fried seam-side down and shaken once.',check:'Bacon crisp, sausages cooked through.',
+    airfryer:{label:'Air fryer',device:'airfryer',temp:180,in:15,out:0,space:1,time:'12–15 min',method:'Chipolatas wrapped in streaky bacon, air fried seam-side down and shaken once.',check:'Bacon crisp, sausages cooked through.',
       steps:[[20,'Wrap the pigs in blankets','Wrap each chipolata in half a rasher of streaky bacon.','prep'],[15,'Pigs in blankets in the air fryer','180°C, seam-side down.','airfryer'],[8,'Shake the pigs in blankets','','airfryer'],[0,'Pigs in blankets out','','airfryer']]}}},
-  cauli:{label:'Cauliflower cheese',order:['oven'],how:{
-    oven:{label:'Oven',device:'oven',temp:180,in:35,out:0,time:'15 min prep + 35 min',method:'Part-cooked florets under a cheese sauce, baked until bubbling.',check:'Bubbling at the edges and browned on top.',
+  cauli:{label:'Cauliflower cheese',order:['oven','airfryer'],how:{
+    oven:{label:'Oven',device:'oven',temp:180,in:35,out:0,space:1,time:'15 min prep + 35 min',method:'Part-cooked florets under a cheese sauce, baked until bubbling.',check:'Bubbling at the edges and browned on top.',
       steps:[[50,'Make the cauliflower cheese','Boil florets for 4 minutes and drain. Make a cheese sauce and pour it over them in a baking dish.','hob'],
-        [35,'Cauliflower cheese in','','oven'],[0,'Cauliflower cheese out','','oven']]}}},
+        [35,'Cauliflower cheese in','','oven'],[0,'Cauliflower cheese out','','oven']]},
+    airfryer:{label:'Air fryer',device:'airfryer',temp:180,in:20,out:0,space:1,time:'15 min prep + 20 min',method:'The same, in a small dish that fits the drawer.',check:'Bubbling at the edges and browned on top.',
+      steps:[[35,'Make the cauliflower cheese','Boil florets for 4 minutes and drain. Make a cheese sauce and pour it over them in a small dish that fits the drawer.','hob'],
+        [20,'Cauliflower cheese in the air fryer','180°C.','airfryer'],[0,'Cauliflower cheese out','','airfryer']]}}},
   gravy:{label:'Gravy',order:['hob'],how:{
     hob:{label:'Hob',device:'hob',time:'15–20 min',method:'Made in the roasting tin from the meat juices while the meat rests.',check:'Coats the back of a spoon.',
       steps:[[20,'Make the gravy','Spoon most of the fat out of the roasting tin. Stir in 1 tbsp flour over the heat, then add 500 ml stock and any resting juices. Simmer 10 minutes, scraping up the sticky bits.','hob'],
         [0,'Strain the gravy into a warm jug','','hob']]}}}
 };
+const SIDE_ORDER=Object.keys(SIDES);
 
 const PLACES={oven:'Oven',top:'Top oven',airfryer:'Air fryer',hob:'Hob',steam:'Steamer',prep:'Prep',serve:'Serve'};
-const KITCHEN_DEFAULT={shelves:3,topOven:true,airfryer:'dual',steamer:true};
-const DEFAULT={serve:'13:30',unit:'fan',meat:'chicken',kg:1.6,done:{beef:'medium',lamb:'pink'},sides:['potatoes','carrots','greens','yorkshires','gravy'],how:{},kitchen:KITCHEN_DEFAULT,locked:null};
+const KITCHEN_DEFAULT={shelves:2,topOven:true,airfryer:'dual',steamer:true};
+const DEFAULT={serve:'13:30',unit:'fan',meat:'chicken',kg:1.6,done:{beef:'medium',lamb:'pink'},sides:['potatoes','carrots','tenderstem','yorkshires','gravy'],how:{potatoes:'airfryer'},space:{},kitchen:KITCHEN_DEFAULT,plan:null,locked:false};
 
 const store = {
   get(k,d){try{const v=localStorage.getItem('roast:'+k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem('roast:'+k,JSON.stringify(v))}catch(e){}}
 };
 
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const r5 = m => Math.round(m/5)*5;
+const clampKg = v => Math.min(6,Math.max(0.5,Math.round((Number(v)||1.5)*10)/10));
+function gas(c){const t=[[140,1],[150,2],[160,3],[180,4],[190,5],[200,6],[220,7],[230,8],[240,9]];let b=t[0];for(const x of t){if(Math.abs(x[0]-c)<Math.abs(b[0]-c))b=x}return b[1]}
+function T(fan){return state.unit==='fan'?`${fan}°C fan`:state.unit==='conv'?`${fan+20}°C`:`Gas ${gas(fan+20)}`}
+function dur(m){const h=Math.floor(m/60),mm=m%60;return h?`${h} hr${mm?` ${mm} min`:''}`:`${mm} min`}
+function hm(d){return `${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function stable(v){if(Array.isArray(v))return '['+v.map(stable).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)}
+const plural=(n,one,many)=>`${n} ${n===1?one:many}`;
+
+// ---------- State ----------
+function cleanKitchen(k0){
+  const k=Object.assign({},KITCHEN_DEFAULT,k0||{});
+  return {shelves:Math.min(5,Math.max(1,parseInt(k.shelves,10)||2)),topOven:!!k.topOven,steamer:!!k.steamer,airfryer:['none','single','dual'].includes(k.airfryer)?k.airfryer:'dual'};
+}
+function avail(k,kitchen){return k==='airfryer'?kitchen.airfryer!=='none':k==='steam'?kitchen.steamer:true}
+function howFor(id,o){const s=SIDES[id],k=o.how[id];return (k&&s.how[k]&&avail(k,o.kitchen))?k:s.order.find(x=>avail(x,o.kitchen))}
+function maxSpace(device,kitchen){return device==='oven'?Math.min(3,kitchen.shelves):device==='airfryer'?(kitchen.airfryer==='dual'?2:1):0}
+function spaceFor(id,k,o){
+  const h=SIDES[id].how[k],max=maxSpace(h.device,o.kitchen);
+  if(!max)return 0;
+  const v=o.space[id+':'+k];
+  return Math.min(max,Math.max(1,parseInt(v??h.space??1,10)||1));
+}
+function cfgOf(o){
+  return {meat:o.meat,kg:o.kg,dn:typeof o.done[o.meat]==='string'?o.done[o.meat]:null,
+    items:o.sides.map(id=>{const k=howFor(id,o);return {id,k,sp:spaceFor(id,k,o)}}),kitchen:o.kitchen};
+}
+function cleanCfg(c){
+  return {meat:MEATS[c.meat]?c.meat:'none',kg:clampKg(c.kg),dn:typeof c.dn==='string'?c.dn:null,
+    items:(Array.isArray(c.items)?c.items:[]).filter(x=>x&&SIDES[x.id]&&SIDES[x.id].how[x.k]).map(x=>({id:x.id,k:x.k,sp:Math.max(0,Math.min(3,parseInt(x.sp,10)||0))})),
+    kitchen:cleanKitchen(c.kitchen)};
+}
 function clean(s){
   const o=Object.assign({},DEFAULT,s||{});
   if(!MEATS[o.meat])o.meat=DEFAULT.meat;
-  o.sides=(Array.isArray(o.sides)?o.sides:[]).filter(k=>SIDES[k]);
-  o.kg=Math.min(6,Math.max(0.5,Number(o.kg)||1.5));
+  o.sides=[...new Set(Array.isArray(o.sides)?o.sides:[])].filter(k=>SIDES[k]).sort((a,b)=>SIDE_ORDER.indexOf(a)-SIDE_ORDER.indexOf(b));
+  o.kg=clampKg(o.kg);
   o.done=Object.assign({},DEFAULT.done,o.done||{});
   if(!['fan','conv','gas'].includes(o.unit))o.unit='fan';
   if(!/^\d\d:\d\d$/.test(o.serve))o.serve=DEFAULT.serve;
-  const k=Object.assign({},KITCHEN_DEFAULT,o.kitchen||{});
-  k.shelves=Math.min(5,Math.max(1,parseInt(k.shelves,10)||3));
-  k.topOven=!!k.topOven; k.steamer=!!k.steamer;
-  if(!['none','single','dual'].includes(k.airfryer))k.airfryer='dual';
-  o.kitchen=k;
+  o.kitchen=cleanKitchen(o.kitchen);
   o.how=(o.how&&typeof o.how==='object')?Object.fromEntries(Object.entries(o.how).filter(([id,v])=>SIDES[id]&&SIDES[id].how[v])):{};
-  o.locked=(typeof o.locked==='string'&&!isNaN(Date.parse(o.locked)))?o.locked:null;
+  o.space=(o.space&&typeof o.space==='object')?Object.fromEntries(Object.entries(o.space).filter(([key,v])=>{const [id,k]=key.split(':');return SIDES[id]&&SIDES[id].how[k]&&Number.isFinite(+v)})):{};
+  let plan=o.plan, locked=o.locked;
+  if(plan&&typeof plan==='object'&&typeof plan.at==='string'&&!isNaN(Date.parse(plan.at))&&plan.cfg&&typeof plan.cfg==='object') plan={at:plan.at,cfg:cleanCfg(plan.cfg)};
+  else plan=null;
+  if(typeof locked==='string'&&!isNaN(Date.parse(locked))){ // older version stored the lock time here
+    if(!plan)plan={at:new Date(locked).toISOString(),cfg:cfgOf(o)};
+    locked=true;
+  } else locked=locked===true;
+  o.plan=plan; o.locked=locked&&!!plan;
   return o;
 }
 
 let state = clean(store.get('state',{}));
 let ticked = new Set(store.get('ticked',[]));
-let day = null, alerted = new Set(), audio = null, wake = null, plan = [], lastNotes = [];
-let alarmUntil = 0, alarmEvent = null, runArmed = false;
+let day = 'today', tab = 'setup', plan = [], planP = null;
+let alerted = new Set(), audio = null, wake = null, alarmUntil = 0, alarmEvent = null, runArmed = false;
 
-const $ = s => document.querySelector(s);
-const pad = n => String(n).padStart(2,'0');
-const r5 = m => Math.round(m/5)*5;
-function gas(c){const t=[[140,1],[150,2],[160,3],[180,4],[190,5],[200,6],[220,7],[230,8],[240,9]];let b=t[0];for(const x of t){if(Math.abs(x[0]-c)<Math.abs(b[0]-c))b=x}return b[1]}
-function T(fan){return state.unit==='fan'?`${fan}°C fan`:state.unit==='conv'?`${fan+20}°C`:`Gas ${gas(fan+20)}`}
-function dur(m){const h=Math.floor(m/60),mm=m%60;return h?`${h} hr${mm?` ${mm} min`:''}`:`${mm} min`}
-function hm(d){return `${pad(d.getHours())}:${pad(d.getMinutes())}`}
-function dayName(d){return d.toLocaleDateString('en-GB',{weekday:'long'})}
-
-function avail(k){const K=state.kitchen;return k==='airfryer'?K.airfryer!=='none':k==='steam'?K.steamer:true}
-function howFor(id){const s=SIDES[id],k=state.how[id];return (k&&s.how[k]&&avail(k))?k:s.order.find(avail)}
-
-function serveDate(){
-  if(state.locked) return new Date(state.locked);
+function setupAt(){
   const [h,m]=state.serve.split(':').map(Number);
   const d=new Date();d.setHours(h,m,0,0);
   if(day==='tomorrow')d.setDate(d.getDate()+1);
   return d;
 }
+const planAt=()=>state.plan?new Date(state.plan.at):null;
+const isDirty=()=>!state.plan||stable({at:setupAt().toISOString(),cfg:cfgOf(state)})!==stable({at:state.plan.at,cfg:state.plan.cfg});
 
-// Find spans where more things share a device than it has room for. Times are minutes before serving.
+// Spans where things share a device beyond its room. Times are minutes before serving.
 function crowding(intervals,cap){
   const b=[...new Set(intervals.flatMap(i=>[i.start,i.end]))].sort((x,y)=>y-x);
   const out=[];let peak=0;
   for(let i=0;i<b.length-1;i++){
     const act=intervals.filter(x=>x.start>=b[i]&&x.end<=b[i+1]);
-    const n=new Set(act.map(x=>x.id)).size;
+    const n=act.reduce((s,x)=>s+x.sp,0);
     peak=Math.max(peak,n);
     if(n>cap){
       const last=out[out.length-1];
@@ -486,44 +644,53 @@ function crowding(intervals,cap){
   return {over:out,peak};
 }
 
-function buildPlan(){
-  const K=state.kitchen, ev=[], iv=[], methods=[], notes=[];
-  const m=MEATS[state.meat];
+// ---------- Planner ----------
+function planOnce(cfg,extra){
+  const K=cfg.kitchen, ev=[], iv=[], methods=[], notes=[];
+  const m=MEATS[cfg.meat], rest=(m.rest||0)+(extra||0);
   let meatInfo=null;
-  if(state.meat!=='none'){
+  if(cfg.meat!=='none'){
     let total, check, d='std';
     if(m.fixed){total=m.fixed;check=m.check}
-    else{d=m.dn?state.done[state.meat]:'std';total=r5((m.sear?m.sear.mins:0)+m.perKg[d]*state.kg+(m.extra||0));check=typeof m.check==='string'?m.check:m.check[d]}
-    const outAt=m.rest, inAt=outAt+total;
-    if(m.sear){iv.push({id:'meat',meat:true,phase:'sear',device:'oven',start:inAt,end:inAt-m.sear.mins,temp:m.sear.temp});iv.push({id:'meat',meat:true,device:'oven',start:inAt-m.sear.mins,end:outAt,temp:m.temp})}
-    else iv.push({id:'meat',meat:true,device:'oven',start:inAt,end:outAt,temp:m.temp});
+    else{d=m.dn?(m.dn[cfg.dn]?cfg.dn:Object.keys(m.dn)[1]):'std';total=r5((m.sear?m.sear.mins:0)+m.perKg[d]*cfg.kg+(m.extra||0));check=typeof m.check==='string'?m.check:m.check[d]}
+    const outAt=rest, inAt=outAt+total;
+    if(m.sear){iv.push({id:'meat',meat:true,phase:'sear',device:'oven',sp:1,start:inAt,end:inAt-m.sear.mins,temp:m.sear.temp});iv.push({id:'meat',meat:true,device:'oven',sp:1,start:inAt-m.sear.mins,end:outAt,temp:m.temp})}
+    else iv.push({id:'meat',meat:true,device:'oven',sp:1,start:inAt,end:outAt,temp:m.temp});
     if(!m.fixed) ev.push({t:inAt+45,title:`Take the ${m.noun} out of the fridge`,detail:'So it comes up towards room temperature and cooks evenly.',place:'prep'});
     ev.push({t:inAt,title:`${m.label} in`,detail:m.method,place:'oven'});
     if(m.baste) ev.push({t:r5(outAt+total/2),title:`Baste the ${m.noun}`,detail:'Spoon the juices from the tin over the top.',place:'oven'});
-    ev.push({t:outAt,title:`${m.label} out to rest`,detail:`Check it's done: ${check} Cover loosely with foil and rest for ${m.rest} minutes.`,place:'oven'});
+    ev.push({t:outAt,title:`${m.label} out to rest`,detail:`Check it's done: ${check} Cover loosely with foil and rest for ${rest} minutes.`,place:'oven'});
     ev.push({t:5,title:m.fixed?'Slice the nut roast':`Carve the ${m.noun}`,detail:'Pour any resting juices into the gravy.',place:'prep'});
     meatInfo={label:m.label,temp:m.temp};
-    methods.push({name:m.label+(m.dn?` · ${m.dn[d]}`:''),facts:[m.sear?`${T(m.sear.temp)} for ${m.sear.mins} min, then ${T(m.temp)}`:T(m.temp),'Main oven',`${dur(total)} + ${m.rest} min rest`],method:m.method,check});
+    methods.push({name:m.label+(m.dn?` · ${m.dn[d]}`:''),facts:[m.sear?`${T(m.sear.temp)} for ${m.sear.mins} min, then ${T(m.temp)}`:T(m.temp),'Main oven · 1 tray',`${dur(total)} + ${rest} min rest`],method:m.method,check});
   }
 
-  // Which side cooks how, and air fryer drawer assignment
-  const zones=K.airfryer==='dual'?2:1;
-  const chosen=state.sides.map(id=>{const k=howFor(id);return {id,s:SIDES[id],k,h:SIDES[id].how[k]}});
+  const zones=K.airfryer==='dual'?2:K.airfryer==='single'?1:0;
+  const chosen=cfg.items.map(x=>({...x,s:SIDES[x.id],h:SIDES[x.id].how[x.k]}));
+
+  // Air fryer drawers: longest cook picks first
   const zoneOf={}, zoneFree=[];
+  const free=(z,start)=>zoneFree[z]===undefined||zoneFree[z]>=start;
   chosen.filter(x=>x.h.device==='airfryer').sort((a,b)=>b.h.in-a.h.in).forEach(x=>{
-    for(let z=0;z<zones;z++){if(zoneFree[z]===undefined||zoneFree[z]>=x.h.in){zoneOf[x.id]=z+1;zoneFree[z]=x.h.out;break}}
+    if(x.sp>=2&&zones===2){if(free(0,x.h.in)&&free(1,x.h.in)){zoneOf[x.id]='both';zoneFree[0]=zoneFree[1]=x.h.out}return}
+    for(let z=0;z<zones;z++){if(free(z,x.h.in)){zoneOf[x.id]=z+1;zoneFree[z]=x.h.out;break}}
   });
 
   const sideMethods={};
-  for(const {id,s,h} of chosen){
+  for(const x of chosen){
+    const {id,s,h,sp}=x;
     for(const [t,title,detail,place] of h.steps){
       let d=detail;
-      if(id==='gravy'&&state.meat==='none'&&t>0) d='Fry a sliced onion until soft, stir in 1 tbsp flour, add 500 ml vegetable stock and simmer 10 minutes.';
-      if(place==='airfryer'&&t===h.in&&zones===2&&zoneOf[id]) d=`Drawer ${zoneOf[id]}. ${d}`.trim();
-      ev.push({t,title,detail:d,place});
+      if(id==='gravy'&&cfg.meat==='none'&&t>0) d='Fry a sliced onion until soft, stir in 1 tbsp flour, add 500 ml vegetable stock and simmer 10 minutes.';
+      if(place==='airfryer'&&t===h.in&&zones===2&&zoneOf[id]) d=(zoneOf[id]==='both'?'Both drawers, split evenly. Use Match so they cook the same. ':`Drawer ${zoneOf[id]}. `)+d;
+      if(place==='oven'&&t===h.in&&sp>1) d=(d?d+' ':'')+`Spread over ${sp} trays.`;
+      ev.push({t,title,detail:d.trim(),place});
     }
-    if(h.device==='oven'||h.device==='airfryer') iv.push({id,label:s.label,device:h.device,start:h.in,end:h.out,temp:h.temp});
-    const where=h.device==='oven'?[T(h.temp),'Main oven']:h.device==='airfryer'?[`${h.temp}°C`,`Air fryer${zones===2&&zoneOf[id]?` · drawer ${zoneOf[id]}`:''}`]:[PLACES[h.device]];
+    if(h.device==='oven'||h.device==='airfryer') iv.push({id,device:h.device,sp,start:h.in,end:h.out,temp:h.temp});
+    let where;
+    if(h.device==='oven') where=[T(h.temp),`Main oven · ${plural(sp,'tray','trays')}`];
+    else if(h.device==='airfryer') where=[`${h.temp}°C`,'Air fryer'+(zones===2?(zoneOf[id]==='both'?' · both drawers':zoneOf[id]?` · drawer ${zoneOf[id]}`:''):'')];
+    else where=[PLACES[h.device]];
     sideMethods[id]={name:s.label,facts:[...where,h.time],method:h.method,check:h.check};
   }
   ev.push(K.topOven
@@ -559,77 +726,133 @@ function buildPlan(){
   }
 
   // Room checks
+  const byId=Object.fromEntries(chosen.map(x=>[x.id,x]));
   const label=id=>id==='meat'?(meatInfo?meatInfo.label.toLowerCase():'meat'):SIDES[id].label.toLowerCase();
   const list=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+  const pickMoves=(ids,need,ok,sortFn)=>{const out=[];let got=0;for(const id of ids.filter(ok).sort(sortFn)){if(got>=need)break;out.push(id);got+=byId[id].sp}return got>=need?out:[]};
+
   const ovenRoom=crowding(ov,K.shelves);
   ovenRoom.over.forEach(o=>{
-    const movable=[...o.ids].filter(id=>id!=='meat'&&SIDES[id].how.airfryer&&avail('airfryer')&&howFor(id)==='oven')
-      .sort((x,y)=>SIDES[x].how.airfryer.in-SIDES[y].how.airfryer.in).slice(0,o.n-K.shelves);
-    notes.push({kind:'warn',a:o.a,b:o.b,text:(from,to)=>`The main oven needs ${o.n} shelves from ${from} to ${to}, but you have ${K.shelves}.`+(movable.length?` Try the ${list(movable.map(label))} in the air fryer.`:' You may need to share a shelf or use a bigger tray.')});
+    const moves=zones?pickMoves([...o.ids],o.n-K.shelves,id=>id!=='meat'&&byId[id].k==='oven'&&SIDES[id].how.airfryer,(x,y)=>SIDES[x].how.airfryer.in-SIDES[y].how.airfryer.in):[];
+    const fewer=[...o.ids].some(id=>id!=='meat'&&byId[id].sp>1);
+    notes.push({kind:'warn',a:o.a,b:o.b,text:(from,to)=>`The main oven needs ${o.n} trays from ${from} to ${to}, but has room for ${K.shelves}.`+(moves.length?` Try the ${list(moves.map(label))} in the air fryer.`:fewer?' Try using fewer trays for a dish.':' Try moving a dish to another method.')});
   });
   const afIv=iv.filter(i=>i.device==='airfryer');
   const afRoom=crowding(afIv,zones);
   afRoom.over.forEach(o=>{
-    const movable=[...o.ids].filter(id=>SIDES[id].how.oven).sort((x,y)=>SIDES[y].how.airfryer.in-SIDES[x].how.airfryer.in).slice(0,o.n-zones);
-    notes.push({kind:'warn',a:o.a,b:o.b,text:(from,to)=>`The air fryer needs ${o.n} drawers from ${from} to ${to}, but has ${zones}.`+(movable.length?` Try the ${list(movable.map(label))} in the oven.`:'')});
+    const moves=pickMoves([...o.ids],o.n-zones,id=>SIDES[id].how.oven,(x,y)=>SIDES[y].how.airfryer.in-SIDES[x].how.airfryer.in);
+    notes.push({kind:'warn',a:o.a,b:o.b,text:(from,to)=>`The air fryer needs ${o.n} drawers from ${from} to ${to}, but has ${zones}.`+(moves.length?` Try the ${list(moves.map(label))} in the oven.`:' Try using one drawer for a dish.')});
   });
-  if(zones===2&&afIv.length>=2&&!afRoom.over.length){
-    const a=chosen.filter(x=>x.h.device==='airfryer');
-    if(a.some(x=>x.h.in!==a[0].h.in&&x.h.out===a[0].h.out))
+  if(zones===2&&!afRoom.over.length){
+    const z1=chosen.filter(x=>zoneOf[x.id]===1), z2=chosen.filter(x=>zoneOf[x.id]===2);
+    if(z1.some(a=>z2.some(b=>a.h.out===b.h.out&&a.h.in!==b.h.in)))
       notes.push({kind:'info',text:()=>'Both air fryer drawers finish at the same time. On a Ninja dual zone you can use Sync, which starts the shorter one later so they finish together.'});
   }
 
-  for(const {id} of chosen) methods.push(sideMethods[id]);
+  for(const x of chosen) methods.push(sideMethods[x.id]);
   ev.push({t:0,title:'Serve',detail:'Everything on the table.',place:'serve'});
   ev.sort((x,y)=>y.t-x.t||(y.first?1:0)-(x.first?1:0)||(x.place==='serve')-(y.place==='serve'));
   ev.forEach(e=>e.key=`${e.t}|${e.title}`);
-  return {ev,methods,notes,start:ev.length?ev[0].t:0,peak:ov.length?Math.max(...ov.map(i=>i.temp)):null,shelfPeak:ovenRoom.peak};
+  return {meatOver:ovenRoom.over.some(o=>o.ids.has('meat')),ev,methods,notes,start:ev.length?ev[0].t:0,peak:ov.length?Math.max(...ov.map(i=>i.temp)):null,
+    ovenPeak:ovenRoom.peak,afPeak:afRoom.peak,zones,shelves:K.shelves};
+}
+
+// If the meat's tray is needed for something else, take the meat out a little earlier to rest (up to 15 min extra).
+function buildPlan(cfg){
+  const m=MEATS[cfg.meat];
+  if(cfg.meat==='none'||!m.rest)return planOnce(cfg,0);
+  for(const e of [0,5,10,15]){
+    const p=planOnce(cfg,e);
+    if(!p.meatOver){
+      if(e)p.notes.unshift({kind:'info',text:()=>`The ${m.noun} comes out ${e} min earlier than usual to free its tray. It rests for ${m.rest+e} min under foil, which keeps it juicy.`});
+      return p;
+    }
+  }
+  return planOnce(cfg,0);
 }
 
 // ---------- Rendering ----------
 function kitSummary(){
   const K=state.kitchen;
-  return [`Main oven, ${K.shelves} shelf${K.shelves>1?'ves':''}`,K.topOven&&'top oven for warming',K.airfryer==='dual'?'dual-zone air fryer':K.airfryer==='single'&&'air fryer',K.steamer&&'steamer','hob'].filter(Boolean).join(' · ');
+  return [`Main oven, ${plural(K.shelves,'tray','trays')}`,K.topOven&&'top oven for warming',K.airfryer==='dual'?'dual-zone air fryer':K.airfryer==='single'&&'air fryer',K.steamer&&'steamer','hob'].filter(Boolean).join(' · ');
 }
+function noteHtml(p,base){return p.notes.map(n=>`<p class="note ${n.kind}">${n.text(n.a!=null?hm(new Date(base-n.a*60000)):'',n.b!=null?hm(new Date(base-n.b*60000)):'')}</p>`).join('')}
 
-function renderControls(){
-  const locked=!!state.locked;
+function renderSetup(){
+  const locked=state.locked;
+  $('#setup-fs').disabled=locked;
+  $('#setup-lock').hidden=!locked;
   $('#serve').value=state.serve;
-  $('#serve').disabled=locked;
-  $('#day-row').querySelector('[aria-label=Day]').hidden=locked;
-  $('#locknote').hidden=!locked;
-  if(locked){const sd=serveDate();$('#locknote').textContent=`Locked in for ${dayName(sd)} at ${hm(sd)}. Stop the timers to change it.`}
   document.querySelectorAll('[data-day]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.day===day));
   document.querySelectorAll('[data-unit]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.unit===state.unit));
   $('#meats').innerHTML=Object.entries(MEATS).map(([k,m])=>`<button type="button" class="chip" data-meat="${k}" aria-pressed="${k===state.meat}">${m.label}</button>`).join('');
-  $('#sides').innerHTML=Object.entries(SIDES).map(([k,s])=>`<button type="button" class="chip" data-side="${k}" aria-pressed="${state.sides.includes(k)}">${s.label}</button>`).join('');
-  $('#how').innerHTML=state.sides.map(id=>{
-    const s=SIDES[id],opts=Object.keys(s.how).filter(avail);
-    if(opts.length<2)return '';
-    const cur=howFor(id);
-    return `<div class="how-row"><span class="how-name">${s.label}</span><div class="seg" role="group" aria-label="How to cook ${s.label}">${opts.map(k=>`<button type="button" data-how="${id}:${k}" aria-pressed="${k===cur}">${s.how[k].label}</button>`).join('')}</div></div>`;
-  }).join('');
   const m=MEATS[state.meat];
   $('#meat-opts').hidden=state.meat==='none'||!!m.fixed;
   $('#kg').value=state.kg.toFixed(1);
   const dn=$('#doneness');
   if(m.dn){dn.hidden=false;dn.innerHTML=Object.entries(m.dn).map(([k,v])=>`<option value="${k}" ${state.done[state.meat]===k?'selected':''}>${v}</option>`).join('')}
   else dn.hidden=true;
+
+  $('#sides').innerHTML=SIDE_ORDER.map(id=>{
+    const s=SIDES[id],on=state.sides.includes(id);
+    let opts='';
+    if(on){
+      const ks=Object.keys(s.how).filter(k=>avail(k,state.kitchen)),k=howFor(id,state),h=s.how[k];
+      if(ks.length>1) opts+=`<div class="seg" role="group" aria-label="How to cook ${s.label}">${ks.map(x=>`<button type="button" data-how="${id}:${x}" aria-pressed="${x===k}">${s.how[x].label}</button>`).join('')}</div>`;
+      else opts+=`<div class="mini fixed"><span>${h.label}</span></div>`;
+      const max=maxSpace(h.device,state.kitchen),sp=spaceFor(id,k,state);
+      if(max>1){
+        const txt=h.device==='oven'?plural(sp,'tray','trays'):(sp>=2?'Both drawers':'1 drawer');
+        opts+=`<div class="mini" role="group" aria-label="${h.device==='oven'?'Trays':'Drawers'} for ${s.label}"><button type="button" data-sp="${id}:${k}:-1" aria-label="Less space" ${sp<=1?'disabled':''}>−</button><span>${txt}</span><button type="button" data-sp="${id}:${k}:1" aria-label="More space" ${sp>=max?'disabled':''}>+</button></div>`;
+      }
+    }
+    return `<div class="side"><button type="button" class="side-tog" data-side="${id}" aria-pressed="${on}"><span class="cb" aria-hidden="true">✓</span>${s.label}</button>${opts?`<div class="side-opts">${opts}</div>`:''}</div>`;
+  }).join('');
+
   const K=state.kitchen;
   $('#shelves').textContent=K.shelves;
   $('#kit-sum').textContent=kitSummary();
   document.querySelectorAll('[data-kit]').forEach(b=>{const [k,v]=b.dataset.kit.split(':');const cur=k==='airfryer'?K.airfryer:(K[k]?'1':'0');b.setAttribute('aria-pressed',cur===v)});
+
+  // Will it fit?
+  const p=buildPlan(cfgOf(state)), sd=setupAt();
+  $('#fit-sum').innerHTML=`Start at <strong class="mono">${hm(new Date(sd-p.start*60000))}</strong> · ${dur(p.start)} in total`;
+  const meter=(name,n,cap,unit)=>{const over=n>cap,pct=cap?Math.min(100,n/cap*100):0;return `<div class="meter"><span>${name}</span><div class="bar${over?' over':''}"><i style="width:${pct}%"></i></div><span class="val${over?' over':''}">${n} of ${cap} ${unit}</span></div>`};
+  $('#meters').innerHTML=meter('Main oven',p.ovenPeak,p.shelves,'trays')+(p.zones?meter('Air fryer',p.afPeak,p.zones,p.zones===1?'drawer':'drawers'):'');
+  const hasWarn=p.notes.some(n=>n.kind==='warn');
+  $('#fit-notes').innerHTML=hasWarn?noteHtml(p,sd):'<p class="note ok">Everything fits at the busiest moment.</p>';
+
+  renderGenbar();
 }
 
-function render(){
-  const p=buildPlan(); plan=p.ev;
-  const sd=serveDate();
-  const startD=new Date(sd-p.start*60000);
-  const bits=[`Start at <strong class="mono">${hm(startD)}</strong>`,`${dur(p.start)} in total`];
+function renderGenbar(){
+  const btn=$('#gen'),hint=$('#gen-hint'),now=Date.now();
+  if(state.locked){btn.disabled=true;btn.textContent='Timers running';hint.textContent='Stop the timers on the Plan tab to change the plan.';return}
+  if(setupAt()<=now){btn.disabled=true;btn.textContent='Generate plan';hint.textContent='That time has passed. Pick a later time or tomorrow.';return}
+  btn.disabled=false;
+  const stale=state.plan&&planAt()<=now;
+  if(!state.plan||stale){btn.textContent='Generate plan';hint.textContent='Makes your run sheet. Nothing starts until you lock it in.'}
+  else if(isDirty()){btn.textContent='Update plan';hint.textContent='You have changes that are not in your plan yet.'}
+  else {btn.textContent='View plan';hint.textContent='Your plan is up to date.'}
+}
+
+function renderPlan(){
+  const has=!!state.plan;
+  $('#no-plan').hidden=has;
+  $('#plan-wrap').hidden=!has;
+  $('#tab-plan').innerHTML='Plan'+(has&&!state.locked&&isDirty()&&planAt()>Date.now()?'<span class="badge" aria-label="needs updating"></span>':'');
+  if(!has){plan=[];return}
+  const p=buildPlan(state.plan.cfg); planP=p; plan=p.ev;
+  const sd=planAt();
+  $('#p-time').textContent=hm(sd);
+  const today=new Date();today.setHours(0,0,0,0);
+  const dd=Math.round((new Date(sd).setHours(0,0,0,0)-today)/86400000);
+  $('#p-day').textContent=dd===0?'today':dd===1?'tomorrow':sd.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
+  const bits=[`Start at <strong class="mono">${hm(new Date(sd-p.start*60000))}</strong>`,`${dur(p.start)} in total`];
   if(p.peak)bits.push(`main oven up to <strong>${T(p.peak)}</strong>`);
-  if(p.shelfPeak)bits.push(`${p.shelfPeak} of ${state.kitchen.shelves} shelves at the busiest`);
   $('#summary').innerHTML=bits.join(' · ');
-  $('#notes').innerHTML=p.notes.map(n=>`<p class="note ${n.kind}">${n.text(n.a!=null?hm(new Date(sd-n.a*60000)):'',n.b!=null?hm(new Date(sd-n.b*60000)):'')}</p>`).join('');
+  $('#stale').hidden=state.locked||!isDirty()||sd<=Date.now();
+  $('#notes').innerHTML=noteHtml(p,sd);
   $('#sheet').innerHTML=plan.map(e=>{
     const at=new Date(sd-e.t*60000);
     return `<li class="ev${ticked.has(e.key)?' done':''}" data-key="${e.key}">
@@ -641,6 +864,16 @@ function render(){
   tick();
 }
 
+function refresh(){renderSetup();renderPlan()}
+
+function setTab(t){
+  tab=t;store.set('tab',t);
+  ['setup','plan','roasts'].forEach(x=>{$('#view-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  $('#genbar').hidden=t!=='setup';
+  $('#wrap').classList.toggle('has-bar',t==='setup');
+  window.scrollTo({top:0});
+}
+
 function fmtCount(ms){
   const s=Math.max(0,Math.round(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
   return h?`${h}:${pad(m)}:${pad(ss)}`:`${pad(m)}:${pad(ss)}`;
@@ -649,7 +882,9 @@ function setText(id,t){const el=$(id);if(el.textContent!==t)el.textContent=t}
 const audioOn=()=>!!audio&&audio.state==='running';
 
 function tick(){
-  const now=Date.now(), sd=serveDate(), locked=!!state.locked, card=$('#next'), btn=$('#run');
+  if(tab==='setup'&&Date.now()%30000<1000)renderGenbar();
+  if(!state.plan)return;
+  const now=Date.now(), sd=planAt(), locked=state.locked, card=$('#next'), btn=$('#run');
   let next=null;
   document.querySelectorAll('.ev').forEach(li=>li.classList.remove('now','past'));
   for(const e of plan){
@@ -669,21 +904,23 @@ function tick(){
     const first=plan[0], startAt=first?+sd-first.t*60000:+sd;
     setText('#next-label','Start cooking at');
     setText('#count',hm(new Date(startAt)));
-    if(sd<=now){
-      setText('#next-title','That time has passed');
-      setText('#next-detail','Pick a new time to eat.');
-      btn.disabled=true;
-    } else if(startAt<now){
+    btn.className='btn';btn.disabled=false;
+    if(+sd<=now){
+      setText('#next-title','This plan has finished');
+      setText('#next-detail','Set up your next roast and generate a new plan.');
+      setText('#run','Set up the next roast');
+      setText('#run-hint','');
+      return;
+    }
+    if(startAt<now){
       setText('#next-title','You are behind the plan');
-      setText('#next-detail',`Starting now puts you ${dur(Math.ceil((now-startAt)/60000))} behind. Pick a later time, or lock in and catch up on the overdue steps.`);
-      det.classList.add('behind');btn.disabled=false;
+      setText('#next-detail',`Starting now puts you ${dur(Math.ceil((now-startAt)/60000))} behind. Pick a later time in Set up, or lock in and catch up on the overdue steps.`);
+      det.classList.add('behind');
     } else {
       setText('#next-title','Ready when you are');
       setText('#next-detail',first?`First step: ${first.title}.`:'');
-      btn.disabled=false;
     }
     setText('#run',`Lock in ${hm(sd)} and start`);
-    btn.className='btn';
     setText('#run-hint','The countdown and alarms start when you lock in.');
     return;
   }
@@ -728,7 +965,7 @@ function alarm(e){
 }
 function initAudio(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state!=='running')audio.resume()}catch(_){}}
 async function lockScreen(){try{if(navigator.wakeLock&&state.locked)wake=await navigator.wakeLock.request('screen')}catch(_){}}
-function primeAlerts(){const now=Date.now(),sd=serveDate();plan.forEach(e=>{if(+sd-e.t*60000<=now)alerted.add(e.key)})}
+function primeAlerts(){if(!state.plan)return;const now=Date.now(),sd=planAt();plan.forEach(e=>{if(+sd-e.t*60000<=now)alerted.add(e.key)})}
 
 function save(){store.set('state',state);schedulePush()}
 
@@ -742,8 +979,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function setSync(kind,text){$('#sync-dot').className='dot '+(kind||'');$('#sync-text').textContent=text}
 function msg(id,text,err){const el=$(id);el.textContent=text;el.classList.toggle('err',!!err)}
 
-function settings(){return {serve:state.serve,unit:state.unit,meat:state.meat,kg:state.kg,done:state.done,sides:state.sides,how:state.how,kitchen:state.kitchen,locked:state.locked}}
-function roastSettings(){return {serve:state.serve,unit:state.unit,meat:state.meat,kg:state.kg,done:state.done,sides:state.sides,how:state.how}}
+function settings(){return {serve:state.serve,unit:state.unit,meat:state.meat,kg:state.kg,done:state.done,sides:state.sides,how:state.how,space:state.space,kitchen:state.kitchen,plan:state.plan,locked:state.locked}}
+function roastSettings(){return {serve:state.serve,meat:state.meat,kg:state.kg,done:state.done,sides:state.sides}}
 function describe(s){
   const m=MEATS[s.meat]||MEATS.none;
   const meat=s.meat==='none'?'No meat':m.label+(m.fixed?'':` ${s.kg}kg`);
@@ -751,11 +988,12 @@ function describe(s){
   return sides.length?`${meat} with ${sides.join(', ')}`:meat;
 }
 function applySettings(s){
-  state=clean(Object.assign({},s,{kitchen:state.kitchen,locked:null}));
-  ticked=new Set();alerted.clear();runArmed=false;
-  store.set('state',state);store.set('ticked',[]);
-  renderControls();render();schedulePush();
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(state.locked){return false}
+  const keep={unit:state.unit,how:state.how,space:state.space,kitchen:state.kitchen,plan:state.plan,locked:false};
+  state=clean(Object.assign({},{serve:s.serve,meat:s.meat,kg:s.kg,done:s.done,sides:s.sides},keep));
+  const [h,m]=state.serve.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);day=d>new Date()?'today':'tomorrow';
+  save();refresh();setTab('setup');
+  return true;
 }
 
 function schedulePush(){
@@ -780,9 +1018,9 @@ async function loadAll(){
   if(error){setSync('err','Could not load from your account. Using what is on this phone.');}
   else if(data){
     state=clean(data.settings);ticked=new Set(data.ticked||[]);
-    expireLock();
+    expireLock();pickDay();
     store.set('state',state);store.set('ticked',[...ticked]);
-    renderControls();render();primeAlerts();if(state.locked)lockScreen();
+    refresh();primeAlerts();if(state.locked){lockScreen();setTab('plan')}
     setSync('ok','Saved to your account.');
   } else await pushCurrent();
   loadSaved();loadCooks();
@@ -796,7 +1034,7 @@ async function loadSaved(){
 function renderSaved(){
   $('#saved-list').innerHTML=saved.length?saved.map(r=>`<li class="item"><div class="item-main"><span class="item-name">${esc(r.name)}</span><span class="item-sub">${esc(describe(r.settings||{}))}</span></div>
     <div class="actions"><button type="button" class="sbtn primary" data-load="${r.id}">Load</button><button type="button" class="sbtn" data-del="saved:${r.id}">Delete</button></div></li>`).join('')
-    :'<li class="item"><span class="item-sub">No saved roasts yet. Set up a roast above and save it here to reuse it.</span></li>';
+    :'<li class="item"><span class="item-sub">No saved roasts yet. Set up a roast and save it here to reuse it.</span></li>';
 }
 
 async function loadCooks(){
@@ -841,15 +1079,23 @@ $('#save-form').addEventListener('submit',async e=>{
 });
 $('#log-btn').addEventListener('click',async()=>{
   const r=$('#rating').value;
-  const {data,error}=await sb.from('roast_cooks').insert({served_at:serveDate().toISOString(),name:describe(state).slice(0,120),settings:roastSettings(),rating:r?Number(r):null,notes:$('#notes-in').value.trim()}).select('id,served_at,name,settings,rating,notes').single();
+  const at=state.plan?planAt():setupAt();
+  const src=state.plan?state.plan.cfg:null;
+  const name=src?describe({meat:src.meat,kg:src.kg,sides:src.items.map(x=>x.id)}):describe(state);
+  const {data,error}=await sb.from('roast_cooks').insert({served_at:at.toISOString(),name:name.slice(0,120),settings:roastSettings(),rating:r?Number(r):null,notes:$('#notes-in').value.trim()}).select('id,served_at,name,settings,rating,notes').single();
   if(error){msg('#log-msg','Not logged. Check your connection and try again.',true);return}
   cooks.unshift(data);cooks.sort((a,b)=>new Date(b.served_at)-new Date(a.served_at));renderCooks();
   $('#notes-in').value='';$('#rating').value='';msg('#log-msg','Logged.');
 });
 
 async function handleDataClick(b){
-  if(b.dataset.load){const r=saved.find(x=>x.id===b.dataset.load);if(r){applySettings(r.settings);msg('#save-msg',`Loaded "${r.name}".`)}}
-  else if(b.dataset.again){const c=cooks.find(x=>x.id===b.dataset.again);if(c)applySettings(c.settings)}
+  if(b.dataset.load||b.dataset.again){
+    const r=b.dataset.load?saved.find(x=>x.id===b.dataset.load):cooks.find(x=>x.id===b.dataset.again);
+    if(!r)return;
+    const box=b.dataset.load?'#save-msg':'#log-msg';
+    if(!applySettings(r.settings)){msg(box,'Your timers are running. Stop them on the Plan tab before loading another roast.',true);return}
+    msg(box,'');
+  }
   else if(b.dataset.del){
     if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to delete';setTimeout(()=>{b.classList.remove('armed');b.textContent='Delete'},3000);return}
     const [kind,id]=b.dataset.del.split(':');
@@ -861,62 +1107,84 @@ async function handleDataClick(b){
   else if(b.id==='signout'){await sb.auth.signOut();user=null;loadedFor=null;saved=[];cooks=[];renderAcct()}
 }
 
-// ---------- Start, stop, finish ----------
+// ---------- Generate, start, stop, finish ----------
+function generate(){
+  if(state.locked||setupAt()<=Date.now())return;
+  state.plan={at:setupAt().toISOString(),cfg:cfgOf(state)};
+  ticked=new Set();store.set('ticked',[]);alerted.clear();
+  save();refresh();setTab('plan');
+}
 function lockIn(){
-  const sd=serveDate();
-  if(sd<=Date.now())return;
+  if(!state.plan||planAt()<=Date.now())return;
   initAudio();
-  state.locked=sd.toISOString();
+  state.locked=true;
   ticked=new Set();store.set('ticked',[]);
   alerted.clear();primeAlerts();runArmed=false;
-  beep();lockScreen();save();renderControls();render();
+  beep();lockScreen();save();refresh();
 }
 function unlock(){
-  const sd=serveDate();
-  state.locked=null;runArmed=false;alarmUntil=0;
-  const now=new Date();const t=new Date(now);t.setHours(sd.getHours(),sd.getMinutes(),0,0);
-  day=t>now?'today':'tomorrow';
+  state.locked=false;runArmed=false;alarmUntil=0;
   try{wake&&wake.release()}catch(_){}wake=null;
-  save();renderControls();render();
+  save();refresh();
 }
-function expireLock(){if(state.locked&&Date.now()>Date.parse(state.locked)+3*3600000)state.locked=null}
+function expireLock(){if(state.locked&&state.plan&&Date.now()>Date.parse(state.plan.at)+3*3600000)state.locked=false}
+function pickDay(){
+  const now=new Date();
+  if(state.plan&&planAt()>now){
+    const sd=planAt(),t=new Date(now);t.setHours(0,0,0,0);
+    const dd=Math.round((new Date(sd).setHours(0,0,0,0)-t)/86400000);
+    if(dd===0||dd===1){day=dd===0?'today':'tomorrow';return}
+  }
+  const [h,m]=state.serve.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);day=d>now?'today':'tomorrow';
+}
 
 // ---------- Events ----------
-$('#serve').addEventListener('change',e=>{if(e.target.value&&!state.locked){state.serve=e.target.value;save();render()}});
+$('#serve').addEventListener('change',e=>{if(e.target.value&&!state.locked){state.serve=e.target.value;save();refresh()}});
 document.addEventListener('pointerdown',()=>{if(state.locked&&!audioOn()){initAudio();tick()}});
+$('#acct-link').addEventListener('click',e=>{e.preventDefault();setTab('roasts')});
 document.addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.day){day=b.dataset.day;renderControls();render()}
-  else if(b.dataset.unit){state.unit=b.dataset.unit;save();renderControls();render()}
-  else if(b.dataset.meat){state.meat=b.dataset.meat;const m=MEATS[state.meat];if(m.kg)state.kg=m.kg;save();renderControls();render()}
-  else if(b.dataset.side){const k=b.dataset.side;state.sides=state.sides.includes(k)?state.sides.filter(x=>x!==k):[...state.sides,k];state.sides.sort((a,c)=>Object.keys(SIDES).indexOf(a)-Object.keys(SIDES).indexOf(c));save();renderControls();render()}
-  else if(b.dataset.how){const [id,k]=b.dataset.how.split(':');state.how=Object.assign({},state.how,{[id]:k});save();renderControls();render()}
-  else if(b.dataset.kit){
-    const [k,v]=b.dataset.kit.split(':');
-    state.kitchen=Object.assign({},state.kitchen,{[k]:k==='airfryer'?v:v==='1'});
-    save();renderControls();render();
-  }
-  else if(b.id==='sh-up'||b.id==='sh-down'){state.kitchen=Object.assign({},state.kitchen,{shelves:Math.min(5,Math.max(1,state.kitchen.shelves+(b.id==='sh-up'?1:-1)))});save();renderControls();render()}
-  else if(b.classList.contains('tick')){const li=b.closest('.ev'),k=li.dataset.key;ticked.has(k)?ticked.delete(k):ticked.add(k);store.set('ticked',[...ticked]);schedulePush();li.classList.toggle('done',ticked.has(k));b.setAttribute('aria-pressed',ticked.has(k))}
-  else if(b.id==='kg-up'||b.id==='kg-down'){state.kg=Math.min(6,Math.max(0.5,Math.round((state.kg+(b.id==='kg-up'?0.1:-0.1))*10)/10));save();renderControls();render()}
-  else if(b.id==='run'){
-    if(!state.locked){lockIn();return}
-    if(serveDate()<=Date.now()){unlock();if(user)$('#log-box').scrollIntoView({behavior:'smooth'});return}
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(b.dataset.tab){setTab(b.dataset.tab);return}
+  if(b.dataset.goto){setTab(b.dataset.goto);return}
+  if(b.id==='gen'){if(state.plan&&!isDirty()&&planAt()>Date.now())setTab('plan');else generate();return}
+  if(b.id==='regen'){generate();return}
+  if(b.id==='run'){
+    if(!state.locked){if(state.plan&&planAt()<=Date.now()){setTab('setup');return}lockIn();return}
+    if(planAt()<=Date.now()){unlock();if(user){setTab('roasts');$('#log-box').scrollIntoView({behavior:'smooth'})}else setTab('setup');return}
     if(!runArmed){runArmed=true;tick();setTimeout(()=>{runArmed=false;tick()},3000);return}
-    unlock();
+    unlock();return;
   }
-  else if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='signout') handleDataClick(b);
+  if(b.classList.contains('tick')){const li=b.closest('.ev'),k=li.dataset.key;ticked.has(k)?ticked.delete(k):ticked.add(k);store.set('ticked',[...ticked]);schedulePush();li.classList.toggle('done',ticked.has(k));b.setAttribute('aria-pressed',ticked.has(k));return}
+  if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='signout'){handleDataClick(b);return}
+  if(state.locked)return;
+  if(b.dataset.day){day=b.dataset.day}
+  else if(b.dataset.unit){state.unit=b.dataset.unit}
+  else if(b.dataset.meat){state.meat=b.dataset.meat;const m=MEATS[state.meat];if(m.kg)state.kg=m.kg}
+  else if(b.dataset.side){const k=b.dataset.side;state.sides=state.sides.includes(k)?state.sides.filter(x=>x!==k):[...state.sides,k];state.sides.sort((a,c)=>SIDE_ORDER.indexOf(a)-SIDE_ORDER.indexOf(c))}
+  else if(b.dataset.how){const [id,k]=b.dataset.how.split(':');state.how=Object.assign({},state.how,{[id]:k})}
+  else if(b.dataset.sp){const [id,k,d]=b.dataset.sp.split(':');const cur=spaceFor(id,k,state);state.space=Object.assign({},state.space,{[id+':'+k]:cur+Number(d)})}
+  else if(b.dataset.kit){const [k,v]=b.dataset.kit.split(':');state.kitchen=Object.assign({},state.kitchen,{[k]:k==='airfryer'?v:v==='1'})}
+  else if(b.id==='sh-up'||b.id==='sh-down'){state.kitchen=Object.assign({},state.kitchen,{shelves:Math.min(5,Math.max(1,state.kitchen.shelves+(b.id==='sh-up'?1:-1)))})}
+  else if(b.id==='kg-up'||b.id==='kg-down'){state.kg=clampKg(state.kg+(b.id==='kg-up'?0.1:-0.1))}
+  else return;
+  save();refresh();
 });
-$('#kg').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.kg=Math.min(6,Math.max(0.5,Math.round(v*10)/10));save()}renderControls();render()});
-$('#doneness').addEventListener('change',e=>{state.done[state.meat]=e.target.value;save();render()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lockScreen()});
+$('#kg').addEventListener('change',e=>{if(state.locked)return;const v=parseFloat(e.target.value);if(!isNaN(v))state.kg=clampKg(v);save();refresh()});
+$('#doneness').addEventListener('change',e=>{if(state.locked)return;state.done[state.meat]=e.target.value;save();refresh()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lockScreen();tick()}});
 
 // ---------- Start up ----------
 (function init(){
-  expireLock();
-  if(!state.locked){const [h,m]=state.serve.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);day=d>new Date()?'today':'tomorrow'}
+  expireLock();pickDay();
   store.set('state',state);
-  renderControls();render();renderAcct();primeAlerts();
+  refresh();renderAcct();primeAlerts();
+  const fresh=state.plan&&planAt()>Date.now();
+  let t=store.get('tab','setup');
+  if(location.hash==='#account')t='roasts';
+  else if(state.locked)t='plan';
+  else if(t==='plan'&&!fresh)t='setup';
+  if(!['setup','plan','roasts'].includes(t))t='setup';
+  setTab(t);
   setInterval(tick,1000);
   if(sb){
     sb.auth.onAuthStateChange((evt,session)=>{
