@@ -204,13 +204,16 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
 .sbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:.85rem;cursor:pointer}
 .sbtn.primary{background:var(--rim);border-color:var(--rim);color:var(--surface);font-weight:600}
 .sbtn.armed{background:var(--hot);border-color:var(--hot);color:var(--surface)}
+.code-row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.code{font-size:clamp(1.6rem,8vw,2.1rem);font-weight:600;letter-spacing:.08em;color:var(--rim);background:var(--rim-soft);border-radius:10px;padding:4px 12px;user-select:all}
+#join-code{text-transform:uppercase;letter-spacing:.08em;max-width:220px}
 </style>
 </head>
 <body>
 
 <div class="wrap" id="wrap">
   <header class="top">
-    <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span> <a class="link" href="#account" id="acct-link">Sign in to keep it safe</a></div>
+    <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span> <a class="link" href="#account" id="acct-link">Share</a></div>
     <p class="eyebrow">Roast Dinner Timer</p>
   </header>
 
@@ -360,13 +363,24 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
     <section id="account">
       <h2>Your roasts</h2>
 
-      <div class="box" id="signed-out">
-        <form id="login" class="row" novalidate>
-          <label for="email" class="lbl" style="flex-basis:100%">Sign in with your email to save roasts and keep a cook log on any device. No password needed.</label>
-          <input class="field" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
-          <button class="btn" type="submit" id="login-btn">Email me a link</button>
+      <div class="box" id="share-box">
+        <h3>Share your roasts</h3>
+        <p class="msg" id="share-intro">Getting your share code…</p>
+        <div class="code-row" id="code-row" hidden>
+          <span class="code mono" id="share-code" aria-label="Your share code"></span>
+          <button type="button" class="sbtn primary" id="copy-code">Copy code</button>
+        </div>
+        <p class="msg" id="share-msg" aria-live="polite"></p>
+        <div class="actions" id="code-actions" hidden><button type="button" class="sbtn" id="change-code">Change code</button></div>
+      </div>
+
+      <div class="box" id="join-box">
+        <h3>Have a share code?</h3>
+        <form id="join-form" class="row" novalidate>
+          <input class="field mono" id="join-code" maxlength="12" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Share code">
+          <button class="btn" type="submit" id="join-btn">Join</button>
         </form>
-        <p class="msg" id="login-msg" aria-live="polite"></p>
+        <p class="msg" id="join-msg" aria-live="polite">This phone will switch to their roasts, plan and cook log.</p>
       </div>
 
       <div id="signed-in" hidden style="display:flex;flex-direction:column;gap:12px">
@@ -401,7 +415,6 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
           <ul class="list" id="cook-list"></ul>
         </div>
 
-        <p class="acctbar">Signed in as <strong id="who"></strong> <button type="button" class="link" id="signout">Sign out</button></p>
       </div>
     </section>
   </div>
@@ -940,7 +953,7 @@ function tick(){
     setText('#next-label','All done');
     setText('#count',hm(sd));
     setText('#next-title','Dinner is served.');
-    setText('#next-detail',user?'Tap Finish, then log how it went.':'Tap Finish to plan the next one.');
+    setText('#next-detail',hh?'Tap Finish, then log how it went.':'Tap Finish to plan the next one.');
   }
   if(!next){setText('#run','Finish');btn.className='btn'}
   else if(runArmed){setText('#run','Tap again to stop');btn.className='btn armed'}
@@ -969,11 +982,11 @@ function primeAlerts(){if(!state.plan)return;const now=Date.now(),sd=planAt();pl
 
 function save(){store.set('state',state);schedulePush()}
 
-// ---------- Supabase: sign-in and saving ----------
+// ---------- Supabase: share codes and saving ----------
 const SB_URL='https://vltpkoggifxepbzvwhdh.supabase.co';
 const SB_KEY='sb_publishable_9a6nA9_X1XBI_bU5LY2Ohg_rMzQzZAg';
-let sb=null, user=null, pushTimer=null, saved=[], cooks=[], loadedFor=null;
-try{ sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit'}}) }catch(e){ sb=null }
+let sb=null, user=null, hh=null, pushTimer=null, pushing=false, saved=[], cooks=[], loadedFor=null, starting=false;
+try{ sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}) }catch(e){ sb=null }
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function setSync(kind,text){$('#sync-dot').className='dot '+(kind||'');$('#sync-text').textContent=text}
@@ -996,38 +1009,41 @@ function applySettings(s){
   return true;
 }
 
+const fmtCode=c=>c?c.slice(0,4)+'-'+c.slice(4):'';
 function schedulePush(){
-  if(!sb||!user)return;
+  if(!sb||!hh)return;
   clearTimeout(pushTimer);
   setSync('busy','Saving…');
-  pushTimer=setTimeout(pushCurrent,700);
+  pushTimer=setTimeout(()=>{pushTimer=null;pushCurrent()},700);
 }
 async function pushCurrent(){
-  if(!sb||!user)return;
-  const {error}=await sb.from('roast_current').upsert({user_id:user.id,settings:settings(),ticked:[...ticked],updated_at:new Date().toISOString()});
-  if(error) setSync('err','Not saved to your account yet. Check your connection. It will try again on your next change.');
-  else setSync('ok','Saved to your account.');
+  if(!sb||!hh)return;
+  pushing=true;
+  const {error}=await sb.from('roast_shared_current').upsert({household_id:hh.id,settings:settings(),ticked:[...ticked],updated_at:new Date().toISOString()});
+  pushing=false;
+  if(error) setSync('err','Not saved online yet. Check your connection. It will try again on your next change.');
+  else setSync('ok','Saved online and shared with your code.');
 }
-window.addEventListener('online',()=>{if(user)pushCurrent()});
+window.addEventListener('online',()=>{if(hh)pushCurrent();else connect()});
 
-async function loadAll(){
-  if(!sb||!user||loadedFor===user.id)return;
-  loadedFor=user.id;
-  setSync('busy','Loading your roast…');
-  const {data,error}=await sb.from('roast_current').select('settings,ticked').maybeSingle();
-  if(error){setSync('err','Could not load from your account. Using what is on this phone.');}
+async function loadAll(force){
+  if(!sb||!hh||(!force&&loadedFor===hh.id))return;
+  loadedFor=hh.id;
+  if(!force)setSync('busy','Loading your roast…');
+  const {data,error}=await sb.from('roast_shared_current').select('settings,ticked').eq('household_id',hh.id).maybeSingle();
+  if(error){setSync('err','Could not load your shared roast. Using what is on this phone.');}
   else if(data){
     state=clean(data.settings);ticked=new Set(data.ticked||[]);
     expireLock();pickDay();
     store.set('state',state);store.set('ticked',[...ticked]);
-    refresh();primeAlerts();if(state.locked){lockScreen();setTab('plan')}
-    setSync('ok','Saved to your account.');
+    refresh();primeAlerts();if(state.locked){lockScreen();if(!force)setTab('plan')}
+    setSync('ok','Saved online and shared with your code.');
   } else await pushCurrent();
   loadSaved();loadCooks();
 }
 
 async function loadSaved(){
-  const {data,error}=await sb.from('roast_saved').select('id,name,settings,created_at').order('created_at',{ascending:false});
+  const {data,error}=await sb.from('roast_shared_saved').select('id,name,settings,created_at').order('created_at',{ascending:false});
   if(error){msg('#save-msg','Could not load your saved roasts. Refresh the page to try again.',true);return}
   saved=data||[];renderSaved();
 }
@@ -1038,7 +1054,7 @@ function renderSaved(){
 }
 
 async function loadCooks(){
-  const {data,error}=await sb.from('roast_cooks').select('id,served_at,name,settings,rating,notes').order('served_at',{ascending:false}).limit(50);
+  const {data,error}=await sb.from('roast_shared_cooks').select('id,served_at,name,settings,rating,notes').order('served_at',{ascending:false}).limit(50);
   if(error){msg('#log-msg','Could not load your cook log. Refresh the page to try again.',true);return}
   cooks=data||[];renderCooks();
 }
@@ -1052,28 +1068,66 @@ function renderCooks(){
 }
 
 function renderAcct(){
-  $('#signed-out').hidden=!!user;
-  $('#signed-in').hidden=!user;
-  $('#acct-link').hidden=!!user;
-  if(user){$('#who').textContent=user.email||'you'}
-  else setSync('', sb?'Saved on this phone only.':'Saved on this phone only. Account saving is unavailable here.');
+  const on=!!hh;
+  $('#signed-in').hidden=!on;
+  $('#join-box').hidden=!on;
+  $('#code-row').hidden=!on;
+  $('#code-actions').hidden=!on;
+  if(on){
+    $('#share-code').textContent=fmtCode(hh.code);
+    $('#share-intro').textContent='Give this code to anyone you cook with. When they enter it on their phone, you share the same plan, saved roasts and cook log.';
+  }
 }
 
-$('#login').addEventListener('submit',async e=>{
+async function connect(){
+  if(!sb||starting||hh)return;
+  starting=true;
+  try{
+    setSync('busy','Connecting…');
+    let {data:{session}}=await sb.auth.getSession();
+    if(!session){
+      const r=await sb.auth.signInAnonymously();
+      if(r.error){
+        setSync('err','Saved on this phone only. Online saving is switched off for now.');
+        $('#share-intro').textContent='Sharing is not available right now. Your roast is still saved on this phone.';
+        return;
+      }
+      session=r.data.session;
+    }
+    user=session.user;
+    const {data,error}=await sb.rpc('roast_ensure_household');
+    if(error||!data||!data[0]){setSync('err','Saved on this phone only. Could not reach the online save. It will try again when you reconnect.');$('#share-intro').textContent='Could not get your share code. Check your connection and refresh.';return}
+    hh={id:data[0].household_id,code:data[0].code};
+    renderAcct();
+    await loadAll();
+  } catch(e){
+    setSync('err','Saved on this phone only. Could not reach the online save.');
+  } finally {starting=false}
+}
+
+$('#join-form').addEventListener('submit',async e=>{
   e.preventDefault();
-  const email=$('#email').value.trim();
-  if(!/^\S+@\S+\.\S+$/.test(email)){msg('#login-msg','Enter your email address, like you@example.com.',true);return}
-  if(!sb){msg('#login-msg','Sign-in could not load. Check your connection and refresh the page.',true);return}
-  $('#login-btn').disabled=true;msg('#login-msg','Sending…');
-  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
-  $('#login-btn').disabled=false;
-  if(error) msg('#login-msg',`Could not send the link: ${error.message}`,true);
-  else msg('#login-msg',`Link sent to ${email}. Open it on this device to sign in.`);
+  const code=$('#join-code').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length!==8){msg('#join-msg','Share codes are 8 letters and numbers, like ABCD-2345.',true);return}
+  if(!hh){msg('#join-msg','Not connected yet. Check your connection and try again.',true);return}
+  if(code===hh.code){msg('#join-msg','That is already your code.',true);return}
+  if(state.locked){msg('#join-msg','Your timers are running. Stop them before switching.',true);return}
+  $('#join-btn').disabled=true;msg('#join-msg','Joining…');
+  const {data,error}=await sb.rpc('roast_join',{p_code:code});
+  $('#join-btn').disabled=false;
+  if(error||!data||!data[0]){msg('#join-msg',error&&/not found/i.test(error.message)?'That code was not found. Check it and try again.':'Could not join. Check your connection and try again.',true);return}
+  hh={id:data[0].household_id,code:data[0].code};
+  loadedFor=null;ticked=new Set();
+  $('#join-code').value='';
+  renderAcct();
+  await loadAll();
+  msg('#join-msg',`Joined. You now share code ${fmtCode(hh.code)}.`);
 });
+
 $('#save-form').addEventListener('submit',async e=>{
   e.preventDefault();
   const name=$('#save-name').value.trim()||describe(state);
-  const {data,error}=await sb.from('roast_saved').insert({name:name.slice(0,80),settings:roastSettings()}).select('id,name,settings,created_at').single();
+  const {data,error}=await sb.from('roast_shared_saved').insert({name:name.slice(0,80),settings:roastSettings()}).select('id,name,settings,created_at').single();
   if(error){msg('#save-msg','Not saved. Check your connection and try again.',true);return}
   saved.unshift(data);renderSaved();$('#save-name').value='';msg('#save-msg',`Saved "${name}".`);
 });
@@ -1082,7 +1136,7 @@ $('#log-btn').addEventListener('click',async()=>{
   const at=state.plan?planAt():setupAt();
   const src=state.plan?state.plan.cfg:null;
   const name=src?describe({meat:src.meat,kg:src.kg,sides:src.items.map(x=>x.id)}):describe(state);
-  const {data,error}=await sb.from('roast_cooks').insert({served_at:at.toISOString(),name:name.slice(0,120),settings:roastSettings(),rating:r?Number(r):null,notes:$('#notes-in').value.trim()}).select('id,served_at,name,settings,rating,notes').single();
+  const {data,error}=await sb.from('roast_shared_cooks').insert({served_at:at.toISOString(),name:name.slice(0,120),settings:roastSettings(),rating:r?Number(r):null,notes:$('#notes-in').value.trim()}).select('id,served_at,name,settings,rating,notes').single();
   if(error){msg('#log-msg','Not logged. Check your connection and try again.',true);return}
   cooks.unshift(data);cooks.sort((a,b)=>new Date(b.served_at)-new Date(a.served_at));renderCooks();
   $('#notes-in').value='';$('#rating').value='';msg('#log-msg','Logged.');
@@ -1099,12 +1153,23 @@ async function handleDataClick(b){
   else if(b.dataset.del){
     if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to delete';setTimeout(()=>{b.classList.remove('armed');b.textContent='Delete'},3000);return}
     const [kind,id]=b.dataset.del.split(':');
-    const table=kind==='saved'?'roast_saved':'roast_cooks';
+    const table=kind==='saved'?'roast_shared_saved':'roast_shared_cooks';
     const {error}=await sb.from(table).delete().eq('id',id);
     if(error){msg(kind==='saved'?'#save-msg':'#log-msg','Not deleted. Check your connection and try again.',true);return}
     if(kind==='saved'){saved=saved.filter(x=>x.id!==id);renderSaved()}else{cooks=cooks.filter(x=>x.id!==id);renderCooks()}
   }
-  else if(b.id==='signout'){await sb.auth.signOut();user=null;loadedFor=null;saved=[];cooks=[];renderAcct()}
+  else if(b.id==='copy-code'){
+    const code=fmtCode(hh&&hh.code);
+    try{await navigator.clipboard.writeText(code);msg('#share-msg','Copied. Send it to anyone you cook with.')}
+    catch(_){const r=document.createRange();r.selectNodeContents($('#share-code'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);msg('#share-msg','Code selected. Copy it from here.')}
+  }
+  else if(b.id==='change-code'){
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to change';msg('#share-msg','Anyone already sharing stays in. The old code stops working for new people.');setTimeout(()=>{b.classList.remove('armed');b.textContent='Change code'},4000);return}
+    b.classList.remove('armed');b.textContent='Change code';
+    const {data,error}=await sb.rpc('roast_change_code');
+    if(error){msg('#share-msg','Could not change the code. Check your connection and try again.',true);return}
+    hh.code=data;renderAcct();msg('#share-msg','New code ready. The old one no longer works.');
+  }
 }
 
 // ---------- Generate, start, stop, finish ----------
@@ -1150,12 +1215,12 @@ document.addEventListener('click',e=>{
   if(b.id==='regen'){generate();return}
   if(b.id==='run'){
     if(!state.locked){if(state.plan&&planAt()<=Date.now()){setTab('setup');return}lockIn();return}
-    if(planAt()<=Date.now()){unlock();if(user){setTab('roasts');$('#log-box').scrollIntoView({behavior:'smooth'})}else setTab('setup');return}
+    if(planAt()<=Date.now()){unlock();if(hh){setTab('roasts');$('#log-box').scrollIntoView({behavior:'smooth'})}else setTab('setup');return}
     if(!runArmed){runArmed=true;tick();setTimeout(()=>{runArmed=false;tick()},3000);return}
     unlock();return;
   }
   if(b.classList.contains('tick')){const li=b.closest('.ev'),k=li.dataset.key;ticked.has(k)?ticked.delete(k):ticked.add(k);store.set('ticked',[...ticked]);schedulePush();li.classList.toggle('done',ticked.has(k));b.setAttribute('aria-pressed',ticked.has(k));return}
-  if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='signout'){handleDataClick(b);return}
+  if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='copy-code'||b.id==='change-code'){handleDataClick(b);return}
   if(state.locked)return;
   if(b.dataset.day){day=b.dataset.day}
   else if(b.dataset.unit){state.unit=b.dataset.unit}
@@ -1171,7 +1236,7 @@ document.addEventListener('click',e=>{
 });
 $('#kg').addEventListener('change',e=>{if(state.locked)return;const v=parseFloat(e.target.value);if(!isNaN(v))state.kg=clampKg(v);save();refresh()});
 $('#doneness').addEventListener('change',e=>{if(state.locked)return;state.done[state.meat]=e.target.value;save();refresh()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lockScreen();tick()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lockScreen();tick();if(hh&&!pushing&&!pushTimer){loadAll(true);loadSaved();loadCooks()}}});
 
 // ---------- Start up ----------
 (function init(){
@@ -1186,13 +1251,8 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
   if(!['setup','plan','roasts'].includes(t))t='setup';
   setTab(t);
   setInterval(tick,1000);
-  if(sb){
-    sb.auth.onAuthStateChange((evt,session)=>{
-      user=session?session.user:null;
-      renderAcct();
-      if(user) setTimeout(loadAll,0);
-    });
-  }
+  if(sb) connect();
+  else { setSync('err','Saved on this phone only. Online saving could not load.'); $('#share-intro').textContent='Sharing could not load. Check your connection and refresh.'; }
 })();
 </script>
 </body>
