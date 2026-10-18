@@ -206,14 +206,32 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
 .sbtn.armed{background:var(--hot);border-color:var(--hot);color:var(--surface)}
 .code-row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
 .code{font-size:clamp(1.6rem,8vw,2.1rem);font-weight:600;letter-spacing:.08em;color:var(--rim);background:var(--rim-soft);border-radius:10px;padding:4px 12px;user-select:all}
-#join-code{text-transform:uppercase;letter-spacing:.08em;max-width:220px}
+.codein{text-transform:uppercase;letter-spacing:.08em;max-width:220px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.sharebtn{border:1px solid var(--rim);background:var(--surface);color:var(--rim);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.88rem;cursor:pointer;white-space:nowrap}
+.sharebtn .mono{letter-spacing:.06em;margin-left:4px}
+.joinhint{background:var(--plum-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.joinhint-title{margin:0}
+.joinhint .row{width:100%}
+.sheet-bg{position:fixed;inset:0;z-index:20;background:rgba(10,14,12,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet-panel{background:var(--surface);color:var(--ink);width:100%;max-width:640px;max-height:92%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));display:flex;flex-direction:column;gap:12px}
+.sheet-panel h3{margin:0;font-size:1rem}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sheet-sep{height:1px;background:var(--line);margin-block:4px}
+.members{margin:0;font-size:.9rem;font-weight:600;color:var(--sage)}
+.confirm{background:var(--rim-soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.confirm p{margin:0}
+@media (min-width:700px){.sheet-bg{align-items:center}.sheet-panel{border-radius:18px}}
 </style>
 </head>
 <body>
 
 <div class="wrap" id="wrap">
   <header class="top">
-    <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span> <a class="link" href="#account" id="acct-link">Share</a></div>
+    <div class="topbar">
+      <div class="acctbar"><span class="dot" id="sync-dot"></span><span id="sync-text">Saved on this phone only.</span></div>
+      <button type="button" class="sharebtn" id="open-share" data-open-share hidden>Share <span class="mono" id="hdr-code"></span></button>
+    </div>
     <p class="eyebrow">Roast Dinner Timer</p>
   </header>
 
@@ -225,6 +243,15 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
 
   <!-- SET UP -->
   <div class="view" id="view-setup" role="tabpanel" aria-labelledby="tab-setup">
+    <div class="joinhint" id="join-hint" hidden>
+      <p class="joinhint-title"><strong>Joining someone's roast?</strong> Enter the code they gave you.</p>
+      <form id="hint-form" class="row" novalidate>
+        <input class="field mono codein" id="hint-code" maxlength="12" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Share code">
+        <button class="btn" type="submit" id="hint-btn">Join</button>
+      </form>
+      <p class="msg" id="hint-msg" aria-live="polite"></p>
+      <button type="button" class="link" id="hint-dismiss">No thanks, I'm starting my own</button>
+    </div>
     <p class="locknote" id="setup-lock" hidden>Your timers are running. Stop them on the Plan tab to change anything here.</p>
     <fieldset id="setup-fs">
       <div class="view">
@@ -364,23 +391,9 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
       <h2>Your roasts</h2>
 
       <div class="box" id="share-box">
-        <h3>Share your roasts</h3>
-        <p class="msg" id="share-intro">Getting your share code…</p>
-        <div class="code-row" id="code-row" hidden>
-          <span class="code mono" id="share-code" aria-label="Your share code"></span>
-          <button type="button" class="sbtn primary" id="copy-code">Copy code</button>
-        </div>
-        <p class="msg" id="share-msg" aria-live="polite"></p>
-        <div class="actions" id="code-actions" hidden><button type="button" class="sbtn" id="change-code">Change code</button></div>
-      </div>
-
-      <div class="box" id="join-box">
-        <h3>Have a share code?</h3>
-        <form id="join-form" class="row" novalidate>
-          <input class="field mono" id="join-code" maxlength="12" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Share code">
-          <button class="btn" type="submit" id="join-btn">Join</button>
-        </form>
-        <p class="msg" id="join-msg" aria-live="polite">This phone will switch to their roasts, plan and cook log.</p>
+        <h3>Sharing</h3>
+        <p class="msg" id="share-sum">Getting your share code…</p>
+        <div class="actions"><button type="button" class="sbtn primary" data-open-share>Share or join a roast</button></div>
       </div>
 
       <div id="signed-in" hidden style="display:flex;flex-direction:column;gap:12px">
@@ -417,6 +430,41 @@ textarea.field{width:100%;min-height:84px;resize:vertical;font-family:var(--f-bo
 
       </div>
     </section>
+  </div>
+</div>
+
+<div class="sheet-bg" id="share-sheet" hidden>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="sheet-head"><h2 id="share-title">Share this roast</h2><button type="button" class="sbtn" id="close-share">Done</button></div>
+
+    <div class="confirm" id="join-confirm" hidden>
+      <p><strong>Join roast <span class="mono" id="confirm-code"></span>?</strong> This phone will switch to their plan, saved roasts and cook log.</p>
+      <div class="actions"><button type="button" class="btn" id="confirm-join">Join</button><button type="button" class="sbtn" id="confirm-cancel">Not now</button></div>
+    </div>
+
+    <p class="msg" id="share-intro">Getting your share code…</p>
+    <div class="code-row"><span class="code mono" id="share-code" aria-label="Your share code"></span></div>
+    <div class="actions">
+      <button type="button" class="btn" id="send-link">Send a link</button>
+      <button type="button" class="sbtn" id="copy-code">Copy code</button>
+    </div>
+    <p class="msg" id="share-msg" aria-live="polite"></p>
+    <p class="members" id="members-line"></p>
+
+    <div class="sheet-sep"></div>
+    <h3>Join someone else's roast</h3>
+    <form id="join-form" class="row" novalidate>
+      <input class="field mono codein" id="join-code" maxlength="12" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Share code">
+      <button class="btn" type="submit" id="join-btn">Join</button>
+    </form>
+    <p class="msg" id="join-msg" aria-live="polite">This phone will switch to their plan, saved roasts and cook log.</p>
+
+    <div class="sheet-sep"></div>
+    <div class="actions">
+      <button type="button" class="sbtn" id="leave" hidden>Start my own roasts</button>
+      <button type="button" class="sbtn" id="change-code">Change code</button>
+    </div>
+    <p class="msg" id="more-msg" aria-live="polite"></p>
   </div>
 </div>
 
@@ -985,7 +1033,7 @@ function save(){store.set('state',state);schedulePush()}
 // ---------- Supabase: share codes and saving ----------
 const SB_URL='https://vltpkoggifxepbzvwhdh.supabase.co';
 const SB_KEY='sb_publishable_9a6nA9_X1XBI_bU5LY2Ohg_rMzQzZAg';
-let sb=null, user=null, hh=null, pushTimer=null, pushing=false, saved=[], cooks=[], loadedFor=null, starting=false;
+let sb=null, user=null, hh=null, pushTimer=null, pushing=false, saved=[], cooks=[], loadedFor=null, starting=false, lastSeen=null, serverHad=true, pendingJoin=null;
 try{ sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}) }catch(e){ sb=null }
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1019,8 +1067,10 @@ function schedulePush(){
 async function pushCurrent(){
   if(!sb||!hh)return;
   pushing=true;
-  const {error}=await sb.from('roast_shared_current').upsert({household_id:hh.id,settings:settings(),ticked:[...ticked],updated_at:new Date().toISOString()});
+  const at=new Date().toISOString();
+  const {error}=await sb.from('roast_shared_current').upsert({household_id:hh.id,settings:settings(),ticked:[...ticked],updated_by:user.id,updated_at:at});
   pushing=false;
+  if(!error)lastSeen=Date.parse(at);
   if(error) setSync('err','Not saved online yet. Check your connection. It will try again on your next change.');
   else setSync('ok','Saved online and shared with your code.');
 }
@@ -1030,7 +1080,9 @@ async function loadAll(force){
   if(!sb||!hh||(!force&&loadedFor===hh.id))return;
   loadedFor=hh.id;
   if(!force)setSync('busy','Loading your roast…');
-  const {data,error}=await sb.from('roast_shared_current').select('settings,ticked').eq('household_id',hh.id).maybeSingle();
+  const {data,error}=await sb.from('roast_shared_current').select('settings,ticked,updated_at').eq('household_id',hh.id).maybeSingle();
+  if(!force)serverHad=!error&&!!data;
+  if(data)lastSeen=Date.parse(data.updated_at);
   if(error){setSync('err','Could not load your shared roast. Using what is on this phone.');}
   else if(data){
     state=clean(data.settings);ticked=new Set(data.ticked||[]);
@@ -1070,13 +1122,35 @@ function renderCooks(){
 function renderAcct(){
   const on=!!hh;
   $('#signed-in').hidden=!on;
-  $('#join-box').hidden=!on;
-  $('#code-row').hidden=!on;
-  $('#code-actions').hidden=!on;
-  if(on){
-    $('#share-code').textContent=fmtCode(hh.code);
-    $('#share-intro').textContent='Give this code to anyone you cook with. When they enter it on their phone, you share the same plan, saved roasts and cook log.';
-  }
+  $('#open-share').hidden=!on;
+  if(!on)return;
+  const code=fmtCode(hh.code), n=hh.members||1;
+  $('#hdr-code').textContent=code;
+  $('#share-code').textContent=code;
+  $('#share-intro').textContent='Give this code to anyone cooking with you, or send them a link. You all see the same plan, ticks and alarms, plus your saved roasts and cook log.';
+  $('#members-line').textContent=n>1?`${n} phones are sharing this roast.`:'Only this phone so far.';
+  $('#share-sum').textContent=n>1?`Sharing code ${code} with ${n-1} other phone${n>2?'s':''}.`:`Your share code is ${code}. Nobody else has joined yet.`;
+  $('#leave').hidden=n<2;
+  $('#join-hint').hidden=!(n===1&&!serverHad&&!store.get('hintDone',false)&&!state.plan);
+}
+
+function openShare(confirmCode){
+  $('#share-sheet').hidden=false;
+  document.body.style.overflow='hidden';
+  $('#join-confirm').hidden=!confirmCode;
+  if(confirmCode)$('#confirm-code').textContent=fmtCode(confirmCode);
+  msg('#share-msg','');msg('#more-msg','');
+  setTimeout(()=>(confirmCode?$('#confirm-join'):$('#close-share')).focus(),50);
+}
+function closeShare(){$('#share-sheet').hidden=true;document.body.style.overflow='';pendingJoin=null}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#share-sheet').hidden)closeShare()});
+$('#share-sheet').addEventListener('click',e=>{if(e.target.id==='share-sheet')closeShare()});
+
+async function refreshInfo(){
+  const {data,error}=await sb.rpc('roast_info');
+  if(error||!data||!data[0])return false;
+  hh={id:data[0].household_id,code:data[0].code,members:data[0].members};
+  return true;
 }
 
 async function connect(){
@@ -1089,40 +1163,73 @@ async function connect(){
       const r=await sb.auth.signInAnonymously();
       if(r.error){
         setSync('err','Saved on this phone only. Online saving is switched off for now.');
-        $('#share-intro').textContent='Sharing is not available right now. Your roast is still saved on this phone.';
         return;
       }
       session=r.data.session;
     }
     user=session.user;
-    const {data,error}=await sb.rpc('roast_ensure_household');
-    if(error||!data||!data[0]){setSync('err','Saved on this phone only. Could not reach the online save. It will try again when you reconnect.');$('#share-intro').textContent='Could not get your share code. Check your connection and refresh.';return}
-    hh={id:data[0].household_id,code:data[0].code};
-    renderAcct();
+    if(!(await refreshInfo())){
+      const {error}=await sb.rpc('roast_ensure_household');
+      if(error||!(await refreshInfo())){setSync('err','Saved on this phone only. Could not reach the online save. It will try again when you reconnect.');return}
+    }
     await loadAll();
+    renderAcct();
+    if(pendingJoin){
+      const c=pendingJoin;
+      if(c===hh.code){pendingJoin=null;openShare();msg('#share-msg','You are already in this roast.')}
+      else if(!serverHad&&!state.locked){pendingJoin=null;await doJoin(c,'#join-msg');openShare();}
+      else openShare(c);
+    }
   } catch(e){
     setSync('err','Saved on this phone only. Could not reach the online save.');
   } finally {starting=false}
 }
 
+const normCode=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function doJoin(code,msgId){
+  if(code.length!==8){msg(msgId,'Share codes are 8 letters and numbers, like ABCD-2345.',true);return false}
+  if(!hh){msg(msgId,'Not connected yet. Check your connection and try again.',true);return false}
+  if(code===hh.code){msg(msgId,'That is already your code.',true);return false}
+  if(state.locked){msg(msgId,'Your timers are running. Stop them before switching.',true);return false}
+  msg(msgId,'Joining…');
+  const {data,error}=await sb.rpc('roast_join',{p_code:code});
+  if(error||!data||!data[0]){msg(msgId,error&&/not found/i.test(error.message)?'That code was not found. Check it and try again.':'Could not join. Check your connection and try again.',true);return false}
+  clearTimeout(pushTimer);pushTimer=null;
+  loadedFor=null;ticked=new Set();alerted.clear();
+  await refreshInfo();
+  await loadAll();
+  store.set('hintDone',true);
+  renderAcct();
+  msg(msgId,`Joined. You're now sharing code ${fmtCode(hh.code)}.`);
+  setTab(state.locked||(state.plan&&planAt()>Date.now())?'plan':'setup');
+  return true;
+}
 $('#join-form').addEventListener('submit',async e=>{
   e.preventDefault();
-  const code=$('#join-code').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(code.length!==8){msg('#join-msg','Share codes are 8 letters and numbers, like ABCD-2345.',true);return}
-  if(!hh){msg('#join-msg','Not connected yet. Check your connection and try again.',true);return}
-  if(code===hh.code){msg('#join-msg','That is already your code.',true);return}
-  if(state.locked){msg('#join-msg','Your timers are running. Stop them before switching.',true);return}
-  $('#join-btn').disabled=true;msg('#join-msg','Joining…');
-  const {data,error}=await sb.rpc('roast_join',{p_code:code});
+  $('#join-btn').disabled=true;
+  if(await doJoin(normCode($('#join-code').value),'#join-msg'))$('#join-code').value='';
   $('#join-btn').disabled=false;
-  if(error||!data||!data[0]){msg('#join-msg',error&&/not found/i.test(error.message)?'That code was not found. Check it and try again.':'Could not join. Check your connection and try again.',true);return}
-  hh={id:data[0].household_id,code:data[0].code};
-  loadedFor=null;ticked=new Set();
-  $('#join-code').value='';
-  renderAcct();
-  await loadAll();
-  msg('#join-msg',`Joined. You now share code ${fmtCode(hh.code)}.`);
 });
+$('#hint-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  $('#hint-btn').disabled=true;
+  if(await doJoin(normCode($('#hint-code').value),'#hint-msg')){$('#hint-code').value='';$('#join-hint').hidden=true}
+  $('#hint-btn').disabled=false;
+});
+
+// Pick up changes made on other phones
+let pollN=0;
+async function poll(){
+  if(!sb||!hh||!user||document.visibilityState!=='visible'||pushing||pushTimer)return;
+  pollN++;
+  const {data}=await sb.from('roast_shared_current').select('updated_at,updated_by').eq('household_id',hh.id).maybeSingle();
+  if(data&&Date.parse(data.updated_at)!==lastSeen&&data.updated_by!==user.id&&!pushing&&!pushTimer){
+    await loadAll(true);
+    setSync('ok','Updated from another phone just now.');
+  }
+  if(pollN%4===0){const before=hh.members;if(await refreshInfo()&&hh.members!==before)renderAcct();loadSaved();loadCooks()}
+}
+setInterval(poll,15000);
 
 $('#save-form').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -1158,17 +1265,39 @@ async function handleDataClick(b){
     if(error){msg(kind==='saved'?'#save-msg':'#log-msg','Not deleted. Check your connection and try again.',true);return}
     if(kind==='saved'){saved=saved.filter(x=>x.id!==id);renderSaved()}else{cooks=cooks.filter(x=>x.id!==id);renderCooks()}
   }
+  else if(b.id==='send-link'){
+    const url=location.origin+location.pathname+'?join='+hh.code;
+    const text=`Join my roast on Roast Dinner Timer. Code ${fmtCode(hh.code)}`;
+    if(navigator.share){try{await navigator.share({title:'Roast Dinner Timer',text,url});msg('#share-msg','');return}catch(e){if(e&&e.name==='AbortError')return}}
+    try{await navigator.clipboard.writeText(url);msg('#share-msg','Link copied. Paste it into a message. Opening it joins this roast.')}
+    catch(_){msg('#share-msg',`Send this link: ${url}`)}
+  }
+  else if(b.id==='confirm-join'){
+    const c=pendingJoin;pendingJoin=null;$('#join-confirm').hidden=true;
+    if(c)await doJoin(c,'#join-msg');
+  }
+  else if(b.id==='confirm-cancel'){pendingJoin=null;$('#join-confirm').hidden=true}
+  else if(b.id==='leave'){
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to leave';msg('#more-msg','This phone stops sharing and gets its own code. It keeps a copy of the current plan.');setTimeout(()=>{b.classList.remove('armed');b.textContent='Start my own roasts'},4000);return}
+    b.classList.remove('armed');b.textContent='Start my own roasts';
+    const {data,error}=await sb.rpc('roast_leave');
+    if(error||!data||!data[0]){msg('#more-msg','Could not leave. Check your connection and try again.',true);return}
+    hh={id:data[0].household_id,code:data[0].code,members:1};
+    state.locked=false;loadedFor=null;saved=[];cooks=[];
+    await loadAll();renderAcct();renderSaved();renderCooks();refresh();
+    msg('#more-msg',`Done. This phone has its own code now: ${fmtCode(hh.code)}.`);
+  }
   else if(b.id==='copy-code'){
     const code=fmtCode(hh&&hh.code);
     try{await navigator.clipboard.writeText(code);msg('#share-msg','Copied. Send it to anyone you cook with.')}
     catch(_){const r=document.createRange();r.selectNodeContents($('#share-code'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);msg('#share-msg','Code selected. Copy it from here.')}
   }
   else if(b.id==='change-code'){
-    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to change';msg('#share-msg','Anyone already sharing stays in. The old code stops working for new people.');setTimeout(()=>{b.classList.remove('armed');b.textContent='Change code'},4000);return}
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to change';msg('#more-msg','Anyone already sharing stays in. The old code stops working for new people.');setTimeout(()=>{b.classList.remove('armed');b.textContent='Change code'},4000);return}
     b.classList.remove('armed');b.textContent='Change code';
     const {data,error}=await sb.rpc('roast_change_code');
-    if(error){msg('#share-msg','Could not change the code. Check your connection and try again.',true);return}
-    hh.code=data;renderAcct();msg('#share-msg','New code ready. The old one no longer works.');
+    if(error){msg('#more-msg','Could not change the code. Check your connection and try again.',true);return}
+    hh.code=data;renderAcct();msg('#more-msg','New code ready. The old one no longer works.');
   }
 }
 
@@ -1176,6 +1305,7 @@ async function handleDataClick(b){
 function generate(){
   if(state.locked||setupAt()<=Date.now())return;
   state.plan={at:setupAt().toISOString(),cfg:cfgOf(state)};
+  store.set('hintDone',true);$('#join-hint').hidden=true;
   ticked=new Set();store.set('ticked',[]);alerted.clear();
   save();refresh();setTab('plan');
 }
@@ -1206,7 +1336,6 @@ function pickDay(){
 // ---------- Events ----------
 $('#serve').addEventListener('change',e=>{if(e.target.value&&!state.locked){state.serve=e.target.value;save();refresh()}});
 document.addEventListener('pointerdown',()=>{if(state.locked&&!audioOn()){initAudio();tick()}});
-$('#acct-link').addEventListener('click',e=>{e.preventDefault();setTab('roasts')});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
   if(b.dataset.tab){setTab(b.dataset.tab);return}
@@ -1220,7 +1349,10 @@ document.addEventListener('click',e=>{
     unlock();return;
   }
   if(b.classList.contains('tick')){const li=b.closest('.ev'),k=li.dataset.key;ticked.has(k)?ticked.delete(k):ticked.add(k);store.set('ticked',[...ticked]);schedulePush();li.classList.toggle('done',ticked.has(k));b.setAttribute('aria-pressed',ticked.has(k));return}
-  if(b.dataset.load||b.dataset.again||b.dataset.del||b.id==='copy-code'||b.id==='change-code'){handleDataClick(b);return}
+  if(b.dataset.openShare!==undefined){openShare();return}
+  if(b.id==='close-share'){closeShare();return}
+  if(b.id==='hint-dismiss'){store.set('hintDone',true);$('#join-hint').hidden=true;return}
+  if(b.dataset.load||b.dataset.again||b.dataset.del||['copy-code','change-code','send-link','confirm-join','confirm-cancel','leave'].includes(b.id)){handleDataClick(b);return}
   if(state.locked)return;
   if(b.dataset.day){day=b.dataset.day}
   else if(b.dataset.unit){state.unit=b.dataset.unit}
@@ -1244,6 +1376,8 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
   store.set('state',state);
   refresh();renderAcct();primeAlerts();
   const fresh=state.plan&&planAt()>Date.now();
+  const q=new URLSearchParams(location.search).get('join');
+  if(q){pendingJoin=normCode(q);try{history.replaceState(null,'',location.pathname)}catch(_){}}
   let t=store.get('tab','setup');
   if(location.hash==='#account')t='roasts';
   else if(state.locked)t='plan';
